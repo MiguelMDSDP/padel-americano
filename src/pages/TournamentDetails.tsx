@@ -20,25 +20,29 @@ export default function TournamentDetails() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
+  const fetchTournament = async () => {
     if (!id) return;
 
-    const fetchTournament = async () => {
-      try {
-        setLoading(true);
-        const data = await getTournamentById(id);
-        setTournament(data);
-        setError(null);
-      } catch (err) {
-        setError("Erro ao carregar torneio");
-        console.error(err);
-      } finally {
-        setLoading(false);
-      }
-    };
+    try {
+      setLoading(true);
+      const data = await getTournamentById(id);
+      setTournament(data);
+      setError(null);
+    } catch (err) {
+      setError("Erro ao carregar torneio");
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  useEffect(() => {
     fetchTournament();
   }, [id]);
+
+  const handleRefresh = () => {
+    fetchTournament();
+  };
 
   if (loading) {
     return (
@@ -119,6 +123,10 @@ export default function TournamentDetails() {
             </div>
             <div className="flex items-center gap-2">
               {getStatusBadge()}
+              <Button variant="outline" size="sm" onClick={handleRefresh} disabled={loading}>
+                <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+                Atualizar
+              </Button>
               <Button variant="ghost" size="sm" asChild>
                 <Link to="/admin">Admin</Link>
               </Button>
