@@ -1,6 +1,6 @@
 // All code in ENGLISH, UI labels in PORTUGUESE
 
-import type { Round } from "@/lib/types";
+import type { Round, Match } from "@/lib/types";
 import { COURT_LABELS } from "@/lib/constants";
 import {
   Card,
@@ -9,10 +9,32 @@ import {
   CardContent,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Clock } from "lucide-react";
+import { Play, Clock } from "lucide-react";
 
 interface UpcomingMatchesProps {
   round: Round;
+}
+
+/**
+ * MatchCard - Displays a single match
+ */
+function MatchCard({ match }: { match: Match }) {
+  return (
+    <div className="flex items-center gap-3 p-4 bg-muted/30 rounded-lg hover:bg-muted/50 transition-colors">
+      <Badge variant="secondary" className="font-semibold">
+        {COURT_LABELS[match.court]}
+      </Badge>
+      <div className="flex-1 text-sm">
+        <span className="font-medium text-foreground">
+          {match.pair1.drivePlayer.name} & {match.pair1.backhandPlayer.name}
+        </span>
+        <span className="text-muted-foreground mx-2">vs</span>
+        <span className="font-medium text-foreground">
+          {match.pair2.drivePlayer.name} & {match.pair2.backhandPlayer.name}
+        </span>
+      </div>
+    </div>
+  );
 }
 
 export default function UpcomingMatchesReal({ round }: UpcomingMatchesProps) {
@@ -24,54 +46,66 @@ export default function UpcomingMatchesReal({ round }: UpcomingMatchesProps) {
     .filter((m) => m.court === "cresol")
     .sort((a, b) => a.order - b.order);
 
-  // Find next match for each court (first NOT finished match)
-  const nextStoneMatch = stoneMatches.find((m) => m.status !== "finished");
-  const nextCresolMatch = cresolMatches.find((m) => m.status !== "finished");
+  // Get all NOT finished matches for each court
+  const stoneNotFinished = stoneMatches.filter((m) => m.status !== "finished");
+  const cresolNotFinished = cresolMatches.filter((m) => m.status !== "finished");
 
-  // Collect upcoming matches
-  const upcomingMatches = [];
-  if (nextStoneMatch) upcomingMatches.push(nextStoneMatch);
-  if (nextCresolMatch) upcomingMatches.push(nextCresolMatch);
+  // Current matches (first NOT finished from each court)
+  const currentMatches = [];
+  if (stoneNotFinished[0]) currentMatches.push(stoneNotFinished[0]);
+  if (cresolNotFinished[0]) currentMatches.push(cresolNotFinished[0]);
 
-  // If no upcoming matches, don't show the section
-  if (upcomingMatches.length === 0) {
-    return null;
-  }
+  // Next matches (second NOT finished from each court)
+  const nextMatches = [];
+  if (stoneNotFinished[1]) nextMatches.push(stoneNotFinished[1]);
+  if (cresolNotFinished[1]) nextMatches.push(cresolNotFinished[1]);
 
   // Sort by court (stone first)
-  const sortedMatches = upcomingMatches.sort((a, b) => {
+  const sortedCurrentMatches = currentMatches.sort((a, b) => {
+    return a.court === "stone" ? -1 : 1;
+  });
+  const sortedNextMatches = nextMatches.sort((a, b) => {
     return a.court === "stone" ? -1 : 1;
   });
 
+  // If no current matches, don't show anything
+  if (currentMatches.length === 0) {
+    return null;
+  }
+
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Clock className="w-5 h-5 text-warning" />
-          Próximos Jogos - Rodada {round.number}
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-3">
-        {sortedMatches.map((match) => (
-          <div
-            key={match.id}
-            className="flex items-center gap-3 p-4 bg-muted/30 rounded-lg hover:bg-muted/50 transition-colors"
-          >
-            <Badge variant="secondary" className="font-semibold">
-              {COURT_LABELS[match.court]}
-            </Badge>
-            <div className="flex-1 text-sm">
-              <span className="font-medium text-foreground">
-                {match.pair1.drivePlayer.name} & {match.pair1.backhandPlayer.name}
-              </span>
-              <span className="text-muted-foreground mx-2">vs</span>
-              <span className="font-medium text-foreground">
-                {match.pair2.drivePlayer.name} & {match.pair2.backhandPlayer.name}
-              </span>
-            </div>
-          </div>
-        ))}
-      </CardContent>
-    </Card>
+    <div className="space-y-6">
+      {/* Current Match Section */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Play className="w-5 h-5 text-green-600" />
+            Jogo Atual - Rodada {round.number}
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {sortedCurrentMatches.map((match) => (
+            <MatchCard key={match.id} match={match} />
+          ))}
+        </CardContent>
+      </Card>
+
+      {/* Next Match Section - Only show if there are next matches */}
+      {nextMatches.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Clock className="w-5 h-5 text-warning" />
+              Próximo Jogo - Rodada {round.number}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {sortedNextMatches.map((match) => (
+              <MatchCard key={match.id} match={match} />
+            ))}
+          </CardContent>
+        </Card>
+      )}
+    </div>
   );
 }
