@@ -26,6 +26,7 @@ export function MatchControl({ match, onUpdateScore, onFinish }: MatchControlPro
   const [pair1Score, setPair1Score] = useState(match.pair1Score);
   const [pair2Score, setPair2Score] = useState(match.pair2Score);
   const [showConfirmFinish, setShowConfirmFinish] = useState(false);
+  const [isFinishing, setIsFinishing] = useState(false);
 
   // Sync scores when match prop changes
   useEffect(() => {
@@ -33,10 +34,11 @@ export function MatchControl({ match, onUpdateScore, onFinish }: MatchControlPro
     setPair2Score(match.pair2Score);
   }, [match.pair1Score, match.pair2Score]);
 
-  // Reset confirm dialog when match is finished
+  // Reset confirm dialog and finishing state when match is finished
   useEffect(() => {
     if (match.status === 'finished') {
       setShowConfirmFinish(false);
+      setIsFinishing(false);
     }
   }, [match.status]);
 
@@ -55,6 +57,11 @@ export function MatchControl({ match, onUpdateScore, onFinish }: MatchControlPro
    * Handle finish match
    */
   const handleFinishMatch = () => {
+    // Prevent double-finishing
+    if (isFinishing || match.status === 'finished') {
+      return;
+    }
+
     // Create a temporary match object with current scores for validation
     const matchToValidate: Match = {
       ...match,
@@ -82,6 +89,9 @@ export function MatchControl({ match, onUpdateScore, onFinish }: MatchControlPro
       toast.error(`Placar Dupla 2: ${score2Validation.error}`);
       return;
     }
+
+    // Set finishing state to prevent double-click
+    setIsFinishing(true);
 
     // CRITICAL FIX: Pass current scores to ensure they are saved correctly
     // This prevents the race condition with auto-save timeout
@@ -216,7 +226,7 @@ export function MatchControl({ match, onUpdateScore, onFinish }: MatchControlPro
         )}
 
         {/* Finish Button */}
-        {!isFinished && (
+        {!isFinished && !isFinishing && (
           <div>
             {showConfirmFinish ? (
               <div className="flex gap-2">
@@ -225,6 +235,7 @@ export function MatchControl({ match, onUpdateScore, onFinish }: MatchControlPro
                   variant="destructive"
                   className="flex-1"
                   size="lg"
+                  disabled={isFinishing}
                 >
                   ✓ Confirmar Finalização
                 </Button>
@@ -233,6 +244,7 @@ export function MatchControl({ match, onUpdateScore, onFinish }: MatchControlPro
                   variant="outline"
                   className="flex-1"
                   size="lg"
+                  disabled={isFinishing}
                 >
                   Cancelar
                 </Button>
@@ -242,6 +254,7 @@ export function MatchControl({ match, onUpdateScore, onFinish }: MatchControlPro
                 onClick={() => setShowConfirmFinish(true)}
                 className="w-full bg-green-600 hover:bg-green-700"
                 size="lg"
+                disabled={isFinishing}
               >
                 <Flag className="w-5 h-5 mr-2" />
                 Finalizar Jogo
