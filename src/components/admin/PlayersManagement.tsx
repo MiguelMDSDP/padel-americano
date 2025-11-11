@@ -1,9 +1,9 @@
 // All code in ENGLISH, UI labels in PORTUGUESE
 
-import { useState, useMemo, useEffect } from 'react';
-import { useLiveQuery } from 'dexie-react-hooks';
-import type { Tournament, Player, Position } from '@/lib/types';
-import { getActiveTournament, saveTournament } from '@/lib/db';
+import { useState, useMemo } from 'react';
+import { useTournament } from '@/hooks/useTournament';
+import type { Player, Position } from '@/lib/types';
+import { saveTournament } from '@/lib/db';
 import { createPlayer } from '@/lib/utils/rankings';
 import { validatePlayerName, canAddPlayer } from '@/lib/utils/validations';
 import { TOURNAMENT_CONFIG } from '@/lib/constants';
@@ -16,20 +16,13 @@ import { Users, Plus, Trash2, Search } from 'lucide-react';
 import { toast } from 'sonner';
 
 export function PlayersManagement() {
-  const dbTournament = useLiveQuery(() => getActiveTournament());
-  const [tournament, setTournament] = useState<Tournament | null>(null);
+  const { tournament } = useTournament();
 
   // Form state
   const [playerName, setPlayerName] = useState('');
   const [position, setPosition] = useState<Position>('drive');
   const [searchTerm, setSearchTerm] = useState('');
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (dbTournament) {
-      setTournament(dbTournament);
-    }
-  }, [dbTournament]);
 
   // Calculate player counts
   const drivePlayers = useMemo(

@@ -1,35 +1,64 @@
 // All code in ENGLISH, UI labels in PORTUGUESE
-// IndexedDB configuration using Dexie.js
+// Supabase database client and helper functions
 
-import Dexie, { type Table } from 'dexie';
+import { supabase } from './supabase';
 import type { Tournament } from './types';
-
-// Database class extending Dexie
-export class PadelAmericanoDatabase extends Dexie {
-  tournaments!: Table<Tournament, string>;
-
-  constructor() {
-    super('PadelAmericanoBR');
-
-    // Define database schema
-    this.version(1).stores({
-      tournaments: 'id, name, startDate, status, lastUpdated',
-    });
-  }
-}
-
-// Create database instance
-export const db = new PadelAmericanoDatabase();
 
 // Database helper functions
 
 /**
- * Save tournament to IndexedDB
+ * Convert Tournament object to Supabase format
+ */
+function tournamentToSupabase(tournament: Tournament) {
+  return {
+    id: tournament.id,
+    name: tournament.name,
+    start_date: tournament.startDate.toISOString(),
+    players: tournament.players,
+    rounds: tournament.rounds,
+    status: tournament.status,
+    last_updated: new Date().toISOString(),
+  };
+}
+
+/**
+ * Convert Supabase row to Tournament object
+ */
+function supabaseToTournament(row: any): Tournament {
+  return {
+    id: row.id,
+    name: row.name,
+    startDate: new Date(row.start_date),
+    players: row.players,
+    rounds: row.rounds.map((round: any) => ({
+      ...round,
+      configuredAt: round.configuredAt ? new Date(round.configuredAt) : undefined,
+      matches: round.matches.map((match: any) => ({
+        ...match,
+        startTime: match.startTime ? new Date(match.startTime) : undefined,
+        endTime: match.endTime ? new Date(match.endTime) : undefined,
+      })),
+    })),
+    status: row.status,
+    lastUpdated: new Date(row.last_updated),
+  };
+}
+
+/**
+ * Save tournament to Supabase
  */
 export async function saveTournament(tournament: Tournament): Promise<void> {
   try {
-    tournament.lastUpdated = new Date();
-    await db.tournaments.put(tournament);
+    const data = tournamentToSupabase(tournament);
+
+    const { error } = await supabase
+      .from('tournaments')
+      .upsert(data, { onConflict: 'id' });
+
+    if (error) {
+      console.error('Supabase error:', error);
+      throw error;
+    }
   } catch (error) {
     console.error('Error saving tournament:', error);
     throw new Error('Failed to save tournament');
@@ -37,17 +66,28 @@ export async function saveTournament(tournament: Tournament): Promise<void> {
 }
 
 /**
- * Get active tournament from IndexedDB
+ * Get active tournament from Supabase
  * Returns the most recently updated tournament, including finished ones
  */
 export async function getActiveTournament(): Promise<Tournament | null> {
   try {
-    const tournaments = await db.tournaments
-      .orderBy('lastUpdated')
-      .reverse()
-      .toArray();
+    const { data, error } = await supabase
+      .from('tournaments')
+      .select('*')
+      .order('last_updated', { ascending: false })
+      .limit(1)
+      .single();
 
-    return tournaments.length > 0 ? tournaments[0] : null;
+    if (error) {
+      // If no tournament exists, return null instead of throwing
+      if (error.code === 'PGRST116') {
+        return null;
+      }
+      console.error('Supabase error:', error);
+      throw error;
+    }
+
+    return data ? supabaseToTournament(data) : null;
   } catch (error) {
     console.error('Error loading tournament:', error);
     throw new Error('Failed to load tournament');
@@ -59,8 +99,21 @@ export async function getActiveTournament(): Promise<Tournament | null> {
  */
 export async function getTournamentById(id: string): Promise<Tournament | null> {
   try {
-    const tournament = await db.tournaments.get(id);
-    return tournament || null;
+    const { data, error } = await supabase
+      .from('tournaments')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (error) {
+      if (error.code === 'PGRST116') {
+        return null;
+      }
+      console.error('Supabase error:', error);
+      throw error;
+    }
+
+    return data ? supabaseToTournament(data) : null;
   } catch (error) {
     console.error('Error loading tournament by ID:', error);
     throw new Error('Failed to load tournament');
@@ -68,11 +121,19 @@ export async function getTournamentById(id: string): Promise<Tournament | null> 
 }
 
 /**
- * Delete tournament from IndexedDB
+ * Delete tournament from Supabase
  */
 export async function deleteTournament(id: string): Promise<void> {
   try {
-    await db.tournaments.delete(id);
+    const { error } = await supabase
+      .from('tournaments')
+      .delete()
+      .eq('id', id);
+
+    if (error) {
+      console.error('Supabase error:', error);
+      throw error;
+    }
   } catch (error) {
     console.error('Error deleting tournament:', error);
     throw new Error('Failed to delete tournament');
@@ -84,7 +145,17 @@ export async function deleteTournament(id: string): Promise<void> {
  */
 export async function getAllTournaments(): Promise<Tournament[]> {
   try {
-    return await db.tournaments.orderBy('lastUpdated').reverse().toArray();
+    const { data, error } = await supabase
+      .from('tournaments')
+      .select('*')
+      .order('last_updated', { ascending: false });
+
+    if (error) {
+      console.error('Supabase error:', error);
+      throw error;
+    }
+
+    return data ? data.map(supabaseToTournament) : [];
   } catch (error) {
     console.error('Error loading tournaments:', error);
     throw new Error('Failed to load tournaments');
@@ -149,7 +220,15 @@ export async function importTournamentJSON(jsonString: string): Promise<Tourname
  */
 export async function clearAllData(): Promise<void> {
   try {
-    await db.tournaments.clear();
+    const { error } = await supabase
+      .from('tournaments')
+      .delete()
+      .neq('id', ''); // Delete all records
+
+    if (error) {
+      console.error('Supabase error:', error);
+      throw error;
+    }
   } catch (error) {
     console.error('Error clearing data:', error);
     throw new Error('Failed to clear data');

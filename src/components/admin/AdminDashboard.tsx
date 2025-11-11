@@ -1,8 +1,8 @@
 // All code in ENGLISH, UI labels in PORTUGUESE
 
-import { useState, useEffect } from 'react';
-import { useLiveQuery } from 'dexie-react-hooks';
-import { getActiveTournament, saveTournament } from '@/lib/db';
+import { useState } from 'react';
+import { useTournament } from '@/hooks/useTournament';
+import { saveTournament } from '@/lib/db';
 import { updatePlayerStats } from '@/lib/utils/rankings';
 import type { Tournament, Round, Match } from '@/lib/types';
 import { TOURNAMENT_CONFIG } from '@/lib/constants';
@@ -12,17 +12,10 @@ import { MatchControl } from '@/components/admin/MatchControl';
 import { toast } from 'sonner';
 
 export const AdminDashboard = () => {
-  const [tournament, setTournament] = useState<Tournament | null>(null);
   const [loading, setLoading] = useState(false);
 
-  // Live sync with IndexedDB
-  const dbTournament = useLiveQuery(() => getActiveTournament(), [], null);
-
-  useEffect(() => {
-    if (dbTournament !== undefined) {
-      setTournament(dbTournament);
-    }
-  }, [dbTournament]);
+  // Live sync with Supabase
+  const { tournament } = useTournament();
 
   /**
    * Update match score in database

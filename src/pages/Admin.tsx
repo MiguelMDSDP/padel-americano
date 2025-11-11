@@ -1,9 +1,9 @@
 // All code in ENGLISH, UI labels in PORTUGUESE
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useLiveQuery } from 'dexie-react-hooks';
-import { getActiveTournament, saveTournament } from '@/lib/db';
+import { useTournament } from '@/hooks/useTournament';
+import { saveTournament } from '@/lib/db';
 import type { Tournament, Round } from '@/lib/types';
 import { TOURNAMENT_CONFIG } from '@/lib/constants';
 import { Trophy, Users, Settings, LogOut, LayoutDashboard, Dices, Database } from 'lucide-react';
@@ -20,18 +20,11 @@ import { toast } from 'sonner';
 const Admin = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('players');
-  const [tournament, setTournament] = useState<Tournament | null>(null);
   const [showRoundConfig, setShowRoundConfig] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  // Live sync with IndexedDB
-  const dbTournament = useLiveQuery(() => getActiveTournament(), [], null);
-
-  useEffect(() => {
-    if (dbTournament !== undefined) {
-      setTournament(dbTournament);
-    }
-  }, [dbTournament]);
+  // Live sync with Supabase
+  const { tournament } = useTournament();
 
   const handleLogout = () => {
     navigate('/login');

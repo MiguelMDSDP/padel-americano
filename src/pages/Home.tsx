@@ -1,9 +1,6 @@
 // All code in ENGLISH, UI labels in PORTUGUESE
 
-import { useEffect, useState } from "react";
-import { useLiveQuery } from "dexie-react-hooks";
-import { getActiveTournament } from "@/lib/db";
-import type { Tournament } from "@/lib/types";
+import { useTournament } from "@/hooks/useTournament";
 import OverallRanking from "@/components/public/OverallRanking";
 import MatchesInProgress from "@/components/public/MatchesInProgress";
 import UpcomingMatchesReal from "@/components/public/UpcomingMatchesReal";
@@ -13,18 +10,8 @@ import { Button } from "@/components/ui/button";
 import { Trophy, RefreshCw } from "lucide-react";
 
 export default function Home() {
-  const [tournament, setTournament] = useState<Tournament | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  // Auto-refresh every 5 seconds using Dexie live query
-  const dbTournament = useLiveQuery(() => getActiveTournament(), [], null);
-
-  useEffect(() => {
-    if (dbTournament !== undefined) {
-      setTournament(dbTournament);
-      setLoading(false);
-    }
-  }, [dbTournament]);
+  // Auto-refresh every 5 seconds using custom hook with Supabase
+  const { tournament, loading } = useTournament();
 
   if (loading) {
     return (
