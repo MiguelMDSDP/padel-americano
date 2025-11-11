@@ -8,7 +8,7 @@ import { COURT_LABELS, TOURNAMENT_CONFIG } from '@/lib/constants';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { AlertCircle, Shuffle, Check, X, Info } from 'lucide-react';
+import { AlertCircle, Check, X, Info } from 'lucide-react';
 import { toast } from 'sonner';
 
 /**
@@ -74,14 +74,6 @@ export function RoundConfigurator({
     } finally {
       setIsGenerating(false);
     }
-  };
-
-  /**
-   * Regenerate round (shuffle again)
-   */
-  const handleRegenerate = () => {
-    setPreviewRound(null);
-    handleGenerate();
   };
 
   /**
@@ -173,15 +165,6 @@ export function RoundConfigurator({
           <Card>
             <CardContent className="pt-6">
               <div className="flex flex-col sm:flex-row gap-3">
-                <Button
-                  onClick={handleRegenerate}
-                  variant="outline"
-                  className="flex-1"
-                  size="lg"
-                >
-                  <Shuffle className="w-4 h-4 mr-2" />
-                  Sortear Novamente
-                </Button>
                 <Button
                   onClick={handleConfirm}
                   className="flex-1 bg-green-600 hover:bg-green-700"
