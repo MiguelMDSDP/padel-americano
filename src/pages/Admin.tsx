@@ -12,6 +12,17 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { AdminDashboard } from '@/components/admin/AdminDashboard';
 import { PlayersManagement } from '@/components/admin/PlayersManagement';
 import { RoundConfigurator } from '@/components/admin/RoundConfigurator';
@@ -23,6 +34,8 @@ const Admin = () => {
   const [activeTab, setActiveTab] = useState('players');
   const [showRoundConfig, setShowRoundConfig] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [tournamentName, setTournamentName] = useState('');
 
   // Live sync with Supabase
   const { tournament } = useTournament();
@@ -34,14 +47,34 @@ const Admin = () => {
   };
 
   /**
+   * Open create tournament dialog
+   */
+  const handleOpenCreateDialog = () => {
+    setTournamentName(`Torneio ${new Date().toLocaleDateString('pt-BR')}`);
+    setShowCreateDialog(true);
+  };
+
+  /**
    * Create new tournament
    */
   const handleCreateTournament = async () => {
+    const trimmedName = tournamentName.trim();
+
+    if (!trimmedName) {
+      toast.error('O nome do torneio não pode estar vazio');
+      return;
+    }
+
+    if (trimmedName.length < 3) {
+      toast.error('O nome do torneio deve ter pelo menos 3 caracteres');
+      return;
+    }
+
     setLoading(true);
     try {
       const newTournament: Tournament = {
         id: `tournament-${Date.now()}`,
-        name: `Torneio ${new Date().toLocaleDateString('pt-BR')}`,
+        name: trimmedName,
         startDate: new Date(),
         players: [],
         rounds: [],
@@ -51,6 +84,8 @@ const Admin = () => {
       };
       await saveTournament(newTournament);
       toast.success('Torneio criado com sucesso!');
+      setShowCreateDialog(false);
+      setTournamentName('');
     } catch (err) {
       console.error('Error creating tournament:', err);
       toast.error('Erro ao criar torneio');
@@ -144,8 +179,8 @@ const Admin = () => {
                   Crie um novo torneio para começar a gerenciar jogadores e rodadas
                 </p>
               </div>
-              <Button onClick={handleCreateTournament} disabled={loading} size="lg">
-                {loading ? 'Criando...' : '➕ Criar Novo Torneio'}
+              <Button onClick={handleOpenCreateDialog} disabled={loading} size="lg">
+                ➕ Criar Novo Torneio
               </Button>
             </CardContent>
           </Card>
@@ -304,6 +339,42 @@ const Admin = () => {
           </Tabs>
         )}
       </main>
+
+      {/* Create Tournament Dialog */}
+      <AlertDialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Criar Novo Torneio</AlertDialogTitle>
+            <AlertDialogDescription>
+              Escolha um nome para o novo torneio. Você poderá adicionar jogadores e configurar rodadas depois.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="py-4">
+            <Input
+              type="text"
+              value={tournamentName}
+              onChange={(e) => setTournamentName(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  handleCreateTournament();
+                }
+              }}
+              placeholder="Nome do Torneio"
+              maxLength={100}
+              autoFocus
+            />
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={loading}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleCreateTournament}
+              disabled={loading || !tournamentName.trim()}
+            >
+              {loading ? 'Criando...' : 'Criar Torneio'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
