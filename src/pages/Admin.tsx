@@ -7,7 +7,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { saveTournament } from '@/lib/db';
 import type { Tournament, Round } from '@/lib/types';
 import { TOURNAMENT_CONFIG } from '@/lib/constants';
-import { Trophy, Users, Settings, LogOut, LayoutDashboard, Dices, Database } from 'lucide-react';
+import { Trophy, Users, Settings, LogOut, LayoutDashboard, Dices } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -15,7 +15,6 @@ import { Badge } from '@/components/ui/badge';
 import { AdminDashboard } from '@/components/admin/AdminDashboard';
 import { PlayersManagement } from '@/components/admin/PlayersManagement';
 import { RoundConfigurator } from '@/components/admin/RoundConfigurator';
-import { DataExporter } from '@/components/admin/DataExporter';
 import { TournamentsManagement } from '@/components/admin/TournamentsManagement';
 import { toast } from 'sonner';
 
@@ -86,20 +85,6 @@ const Admin = () => {
     }
   };
 
-  /**
-   * Handle tournament import from DataExporter
-   */
-  const handleImport = async (imported: Tournament) => {
-    try {
-      await saveTournament(imported);
-      toast.success('Torneio importado com sucesso!');
-      setActiveTab('players');
-    } catch (err) {
-      console.error('Error importing tournament:', err);
-      toast.error('Erro ao importar torneio');
-    }
-  };
-
   // Computed state
   const currentRound = tournament?.rounds[tournament.rounds.length - 1];
   const currentRoundNumber = tournament?.rounds.length || 0;
@@ -166,7 +151,7 @@ const Admin = () => {
           </Card>
         ) : (
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-            <TabsList className="grid w-full max-w-4xl grid-cols-5">
+            <TabsList className="grid w-full max-w-4xl grid-cols-4">
               <TabsTrigger value="players" className="flex items-center gap-2">
                 <Users className="w-4 h-4" />
                 Jogadores
@@ -193,10 +178,6 @@ const Admin = () => {
               <TabsTrigger value="tournaments" className="flex items-center gap-2">
                 <Trophy className="w-4 h-4" />
                 Torneios
-              </TabsTrigger>
-              <TabsTrigger value="data" className="flex items-center gap-2">
-                <Database className="w-4 h-4" />
-                Dados
               </TabsTrigger>
             </TabsList>
 
@@ -324,11 +305,6 @@ const Admin = () => {
             {/* Tournaments Tab (Management) */}
             <TabsContent value="tournaments">
               <TournamentsManagement />
-            </TabsContent>
-
-            {/* Data Tab (Export/Import) */}
-            <TabsContent value="data">
-              <DataExporter tournament={tournament} onImport={handleImport} />
             </TabsContent>
           </Tabs>
         )}
