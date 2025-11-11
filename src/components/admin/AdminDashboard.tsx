@@ -18,40 +18,6 @@ export const AdminDashboard = () => {
   const { tournament } = useTournament();
 
   /**
-   * Update match score in database
-   */
-  const handleScoreUpdate = async (matchId: string, pair1Score: number, pair2Score: number) => {
-    if (!tournament) return;
-
-    const currentRound = tournament.rounds[tournament.rounds.length - 1];
-    if (!currentRound) return;
-
-    const matchIndex = currentRound.matches.findIndex((m) => m.id === matchId);
-    if (matchIndex === -1) return;
-
-    const updatedMatches = [...currentRound.matches];
-    updatedMatches[matchIndex] = {
-      ...updatedMatches[matchIndex],
-      pair1Score,
-      pair2Score,
-      status: 'in_progress' as const,
-    };
-
-    const updatedRounds = [...tournament.rounds];
-    updatedRounds[updatedRounds.length - 1] = {
-      ...currentRound,
-      matches: updatedMatches,
-    };
-
-    const updated = {
-      ...tournament,
-      rounds: updatedRounds,
-    };
-
-    await saveTournament(updated);
-  };
-
-  /**
    * Finish match and update player stats
    */
   const handleMatchFinish = async (matchId: string, pair1Score: number, pair2Score: number) => {
@@ -195,7 +161,6 @@ export const AdminDashboard = () => {
           <MatchControl
             key={match.id}
             match={match}
-            onUpdateScore={handleScoreUpdate}
             onFinish={handleMatchFinish}
           />
         ))}

@@ -17,11 +17,10 @@ import { toast } from 'sonner';
  */
 interface MatchControlProps {
   match: Match;
-  onUpdateScore: (matchId: string, pair1Score: number, pair2Score: number) => void;
   onFinish: (matchId: string, pair1Score: number, pair2Score: number) => void;
 }
 
-export function MatchControl({ match, onUpdateScore, onFinish }: MatchControlProps) {
+export function MatchControl({ match, onFinish }: MatchControlProps) {
   // Score state
   const [pair1Score, setPair1Score] = useState(match.pair1Score);
   const [pair2Score, setPair2Score] = useState(match.pair2Score);
@@ -41,17 +40,6 @@ export function MatchControl({ match, onUpdateScore, onFinish }: MatchControlPro
       setIsFinishing(false);
     }
   }, [match.status]);
-
-  // Auto-save scores when they change (debounced)
-  useEffect(() => {
-    const timeoutId = setTimeout(() => {
-      if (match.status !== 'finished') {
-        onUpdateScore(match.id, pair1Score, pair2Score);
-      }
-    }, 500);
-
-    return () => clearTimeout(timeoutId);
-  }, [pair1Score, pair2Score, match.id, match.status, onUpdateScore]);
 
   /**
    * Handle finish match
@@ -261,13 +249,6 @@ export function MatchControl({ match, onUpdateScore, onFinish }: MatchControlPro
               </Button>
             )}
           </div>
-        )}
-
-        {/* Auto-save indicator */}
-        {!isFinished && (
-          <p className="text-xs text-muted-foreground text-center">
-            Placares salvos automaticamente
-          </p>
         )}
       </CardContent>
     </Card>
