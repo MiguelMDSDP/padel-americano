@@ -27,6 +27,19 @@ export function MatchControl({ match, onUpdateScore, onFinish }: MatchControlPro
   const [pair2Score, setPair2Score] = useState(match.pair2Score);
   const [showConfirmFinish, setShowConfirmFinish] = useState(false);
 
+  // Sync scores when match prop changes
+  useEffect(() => {
+    setPair1Score(match.pair1Score);
+    setPair2Score(match.pair2Score);
+  }, [match.pair1Score, match.pair2Score]);
+
+  // Reset confirm dialog when match is finished
+  useEffect(() => {
+    if (match.status === 'finished') {
+      setShowConfirmFinish(false);
+    }
+  }, [match.status]);
+
   // Auto-save scores when they change (debounced)
   useEffect(() => {
     const timeoutId = setTimeout(() => {
