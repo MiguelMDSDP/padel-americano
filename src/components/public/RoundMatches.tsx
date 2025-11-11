@@ -23,15 +23,13 @@ function MatchCard({ match }: { match: Match }) {
 
   return (
     <div className="p-4 bg-muted/30 rounded-lg border border-border hover:bg-muted/50 transition-colors">
-      <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-2">
-          <Badge variant="secondary" className="font-semibold">
-            Jogo {match.order}
-          </Badge>
-          <Badge variant="outline">
-            {COURT_LABELS[match.court]}
-          </Badge>
-        </div>
+      <div className="flex items-center justify-center gap-2 mb-3">
+        <Badge variant="secondary" className="font-semibold">
+          Jogo {match.order}
+        </Badge>
+        <Badge variant="outline">
+          {COURT_LABELS[match.court]}
+        </Badge>
         {isFinished ? (
           <Badge variant="default" className="bg-green-600">
             ✓ Finalizado
@@ -45,24 +43,24 @@ function MatchCard({ match }: { match: Match }) {
 
       <div className="space-y-2">
         {/* Pair 1 */}
-        <div className={`flex items-center justify-between p-3 rounded-lg ${
+        <div className={`flex items-center justify-center p-3 rounded-lg ${
           isFinished && match.pair1Score > match.pair2Score
             ? 'bg-blue-100 border-2 border-blue-300'
             : 'bg-blue-50'
         }`}>
-          <div className="flex-1">
-            <p className="font-semibold text-sm">
+          <div className="flex items-center gap-3">
+            <p className="font-semibold text-sm text-center">
               {match.pair1.drivePlayer.name} & {match.pair1.backhandPlayer.name}
             </p>
+            {isFinished && (
+              <>
+                <span className="text-2xl font-bold">{match.pair1Score}</span>
+                {match.pair1Score > match.pair2Score && (
+                  <Trophy className="w-5 h-5 text-blue-700" />
+                )}
+              </>
+            )}
           </div>
-          {isFinished && (
-            <div className="flex items-center gap-2">
-              <span className="text-2xl font-bold">{match.pair1Score}</span>
-              {match.pair1Score > match.pair2Score && (
-                <Trophy className="w-5 h-5 text-blue-700" />
-              )}
-            </div>
-          )}
         </div>
 
         {/* VS Divider */}
@@ -71,24 +69,24 @@ function MatchCard({ match }: { match: Match }) {
         </div>
 
         {/* Pair 2 */}
-        <div className={`flex items-center justify-between p-3 rounded-lg ${
+        <div className={`flex items-center justify-center p-3 rounded-lg ${
           isFinished && match.pair2Score > match.pair1Score
             ? 'bg-red-100 border-2 border-red-300'
             : 'bg-red-50'
         }`}>
-          <div className="flex-1">
-            <p className="font-semibold text-sm">
+          <div className="flex items-center gap-3">
+            <p className="font-semibold text-sm text-center">
               {match.pair2.drivePlayer.name} & {match.pair2.backhandPlayer.name}
             </p>
+            {isFinished && (
+              <>
+                <span className="text-2xl font-bold">{match.pair2Score}</span>
+                {match.pair2Score > match.pair1Score && (
+                  <Trophy className="w-5 h-5 text-red-700" />
+                )}
+              </>
+            )}
           </div>
-          {isFinished && (
-            <div className="flex items-center gap-2">
-              <span className="text-2xl font-bold">{match.pair2Score}</span>
-              {match.pair2Score > match.pair1Score && (
-                <Trophy className="w-5 h-5 text-red-700" />
-              )}
-            </div>
-          )}
         </div>
       </div>
     </div>
