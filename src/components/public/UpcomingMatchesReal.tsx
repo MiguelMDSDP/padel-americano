@@ -16,18 +16,26 @@ interface UpcomingMatchesProps {
 }
 
 export default function UpcomingMatchesReal({ round }: UpcomingMatchesProps) {
-  const upcomingMatches = round.matches.filter((m) => m.status === "waiting");
+  // Get matches by court
+  const stoneMatches = round.matches.filter((m) => m.court === "stone").sort((a, b) => a.order - b.order);
+  const cresolMatches = round.matches.filter((m) => m.court === "cresol").sort((a, b) => a.order - b.order);
+
+  // Find next match for each court (first "waiting" match)
+  const nextStoneMatch = stoneMatches.find((m) => m.status === "waiting");
+  const nextCresolMatch = cresolMatches.find((m) => m.status === "waiting");
+
+  // Collect upcoming matches (only 1 per court)
+  const upcomingMatches = [];
+  if (nextStoneMatch) upcomingMatches.push(nextStoneMatch);
+  if (nextCresolMatch) upcomingMatches.push(nextCresolMatch);
 
   if (upcomingMatches.length === 0) {
     return null;
   }
 
-  // Sort by court and order
-  const sortedMatches = [...upcomingMatches].sort((a, b) => {
-    if (a.court !== b.court) {
-      return a.court === "stone" ? -1 : 1;
-    }
-    return a.order - b.order;
+  // Sort by court (stone first)
+  const sortedMatches = upcomingMatches.sort((a, b) => {
+    return a.court === "stone" ? -1 : 1;
   });
 
   return (
