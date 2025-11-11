@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTournament } from '@/hooks/useTournament';
+import { useAuth } from '@/contexts/AuthContext';
 import { saveTournament } from '@/lib/db';
 import type { Tournament, Round } from '@/lib/types';
 import { TOURNAMENT_CONFIG } from '@/lib/constants';
@@ -26,8 +27,10 @@ const Admin = () => {
 
   // Live sync with Supabase
   const { tournament } = useTournament();
+  const { signOut, user } = useAuth();
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    await signOut();
     navigate('/login');
   };
 

@@ -14,6 +14,8 @@ if (!supabaseUrl || !supabaseAnonKey) {
 // Create Supabase client with TypeScript types
 export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
   auth: {
-    persistSession: false, // We don't need auth sessions for now
+    persistSession: true, // Persist auth session in localStorage
+    autoRefreshToken: true, // Automatically refresh token when expired
+    detectSessionInUrl: true, // Detect session from URL (for OAuth flows)
   },
 });
