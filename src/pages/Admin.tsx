@@ -169,11 +169,6 @@ const Admin = () => {
               <TabsTrigger value="dashboard" className="flex items-center gap-2" disabled={!hasMatchesInProgress}>
                 <LayoutDashboard className="w-4 h-4" />
                 Jogos
-                {hasMatchesInProgress && (
-                  <Badge variant="secondary" className="ml-1 bg-live text-live-foreground">
-                    Ao Vivo
-                  </Badge>
-                )}
               </TabsTrigger>
               <TabsTrigger value="tournaments" className="flex items-center gap-2">
                 <Trophy className="w-4 h-4" />

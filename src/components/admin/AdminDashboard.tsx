@@ -180,17 +180,11 @@ export const AdminDashboard = () => {
                 {finishedMatches} de {totalMatches} jogos finalizados
               </p>
             </div>
-            <div>
-              {roundFinished ? (
-                <Badge variant="default" className="bg-green-600">
-                  ✓ Rodada Finalizada
-                </Badge>
-              ) : (
-                <Badge className="bg-live text-live-foreground">
-                  🟢 {totalMatches - finishedMatches} jogos em andamento
-                </Badge>
-              )}
-            </div>
+            {roundFinished && (
+              <Badge variant="default" className="bg-green-600">
+                ✓ Rodada Finalizada
+              </Badge>
+            )}
           </div>
         </CardHeader>
       </Card>
