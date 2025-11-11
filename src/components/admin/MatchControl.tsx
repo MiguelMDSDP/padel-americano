@@ -60,13 +60,13 @@ export function MatchControl({ match, onUpdateScore, onFinish }: MatchControlPro
     // Validate individual scores
     const score1Validation = validateScore(pair1Score);
     if (!score1Validation.isValid) {
-      toast.error(`Placar Par 1: ${score1Validation.error}`);
+      toast.error(`Placar Dupla 1: ${score1Validation.error}`);
       return;
     }
 
     const score2Validation = validateScore(pair2Score);
     if (!score2Validation.isValid) {
-      toast.error(`Placar Par 2: ${score2Validation.error}`);
+      toast.error(`Placar Dupla 2: ${score2Validation.error}`);
       return;
     }
 
@@ -106,7 +106,7 @@ export function MatchControl({ match, onUpdateScore, onFinish }: MatchControlPro
             <div className="flex items-center justify-between">
               <div className="flex-1">
                 <Badge variant="secondary" className="mb-2 bg-blue-600 text-white">
-                  Par 1
+                  Dupla 1
                 </Badge>
                 <p className="font-semibold">
                   {match.pair1.drivePlayer.name}
@@ -148,7 +148,7 @@ export function MatchControl({ match, onUpdateScore, onFinish }: MatchControlPro
             <div className="flex items-center justify-between">
               <div className="flex-1">
                 <Badge variant="secondary" className="mb-2 bg-red-600 text-white">
-                  Par 2
+                  Dupla 2
                 </Badge>
                 <p className="font-semibold">
                   {match.pair2.drivePlayer.name}
@@ -187,12 +187,12 @@ export function MatchControl({ match, onUpdateScore, onFinish }: MatchControlPro
             {pair1Score > pair2Score ? (
               <p className="text-lg font-bold text-blue-700 flex items-center justify-center gap-2">
                 <Trophy className="w-5 h-5" />
-                Par 1 Venceu!
+                Dupla 1 Venceu!
               </p>
             ) : pair2Score > pair1Score ? (
               <p className="text-lg font-bold text-red-700 flex items-center justify-center gap-2">
                 <Trophy className="w-5 h-5" />
-                Par 2 Venceu!
+                Dupla 2 Venceu!
               </p>
             ) : (
               <p className="text-lg font-bold flex items-center justify-center gap-2">

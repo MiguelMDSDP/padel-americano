@@ -285,18 +285,18 @@ interface MatchPreviewProps {
 function MatchPreview({ match, index }: MatchPreviewProps) {
   return (
     <div className="p-4 hover:bg-muted/30 transition-colors">
-      <div className="flex items-center gap-4">
+      <div className="flex flex-col items-center gap-4">
         {/* Match Number */}
         <div className="flex-shrink-0 w-12 h-12 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-lg">
           {index + 1}
         </div>
 
         {/* Match Details */}
-        <div className="flex-1">
+        <div className="w-full">
           {/* Pair 1 */}
-          <div className="mb-2">
+          <div className="mb-2 text-center">
             <Badge variant="secondary" className="mb-1 bg-blue-600 text-white text-xs">
-              Par 1
+              Dupla 1
             </Badge>
             <div className="font-semibold text-foreground text-sm">
               {match.pair1.drivePlayer.name}
@@ -311,9 +311,9 @@ function MatchPreview({ match, index }: MatchPreviewProps) {
           <div className="text-center text-sm font-bold text-muted-foreground my-1">VS</div>
 
           {/* Pair 2 */}
-          <div>
+          <div className="text-center">
             <Badge variant="secondary" className="mb-1 bg-red-600 text-white text-xs">
-              Par 2
+              Dupla 2
             </Badge>
             <div className="font-semibold text-foreground text-sm">
               {match.pair2.drivePlayer.name}

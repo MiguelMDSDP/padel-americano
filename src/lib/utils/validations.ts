@@ -263,7 +263,7 @@ export function canFinishMatch(match: Match): {
   if (!score1Validation.isValid) {
     return {
       canFinish: false,
-      error: `Placar do par 1: ${score1Validation.error}`,
+      error: `Placar da dupla 1: ${score1Validation.error}`,
     };
   }
 
@@ -271,7 +271,7 @@ export function canFinishMatch(match: Match): {
   if (!score2Validation.isValid) {
     return {
       canFinish: false,
-      error: `Placar do par 2: ${score2Validation.error}`,
+      error: `Placar da dupla 2: ${score2Validation.error}`,
     };
   }
 
