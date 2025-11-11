@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useTournament } from '@/hooks/useTournament';
-import { saveTournament } from '@/lib/db';
+import { saveTournament, getActiveTournament } from '@/lib/db';
 import { updatePlayerStats } from '@/lib/utils/rankings';
 import type { Tournament, Round, Match } from '@/lib/types';
 import { TOURNAMENT_CONFIG } from '@/lib/constants';
@@ -91,7 +91,6 @@ export const AdminDashboard = () => {
       };
 
       await saveTournament(updated);
-      setTournament(updated);
     } catch (err) {
       console.error('Error finishing match:', err);
       toast.error('Erro ao finalizar jogo');
