@@ -51,7 +51,6 @@ const Admin = () => {
         lastUpdated: new Date(),
       };
       await saveTournament(newTournament);
-      setTournament(newTournament);
       toast.success('Torneio criado com sucesso!');
     } catch (err) {
       console.error('Error creating tournament:', err);
@@ -76,7 +75,6 @@ const Admin = () => {
         lastUpdated: new Date(),
       };
       await saveTournament(updated);
-      setTournament(updated);
       setShowRoundConfig(false);
       toast.success(`Rodada ${round.number} configurada com sucesso!`);
       setActiveTab('dashboard');
@@ -92,9 +90,14 @@ const Admin = () => {
    * Handle tournament import from DataExporter
    */
   const handleImport = async (imported: Tournament) => {
-    setTournament(imported);
-    toast.success('Torneio importado com sucesso!');
-    setActiveTab('players');
+    try {
+      await saveTournament(imported);
+      toast.success('Torneio importado com sucesso!');
+      setActiveTab('players');
+    } catch (err) {
+      console.error('Error importing tournament:', err);
+      toast.error('Erro ao importar torneio');
+    }
   };
 
   // Computed state
