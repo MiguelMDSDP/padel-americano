@@ -2,7 +2,6 @@
 
 import { useTournament } from "@/hooks/useTournament";
 import OverallRanking from "@/components/public/OverallRanking";
-import MatchesInProgress from "@/components/public/MatchesInProgress";
 import UpcomingMatchesReal from "@/components/public/UpcomingMatchesReal";
 import RoundHistory from "@/components/public/RoundHistory";
 import { Link } from "react-router-dom";
@@ -87,19 +86,11 @@ export default function Home() {
 
       {/* Main Content */}
       <main className="container mx-auto px-4 py-6 space-y-8">
+        {/* Upcoming Matches */}
+        {currentRound && <UpcomingMatchesReal round={currentRound} />}
+
         {/* Rankings */}
         <OverallRanking players={tournament.players} />
-
-        {/* Matches Section */}
-        {currentRound && (
-          <>
-            {/* Matches in Progress */}
-            <MatchesInProgress round={currentRound} />
-
-            {/* Upcoming Matches */}
-            <UpcomingMatchesReal round={currentRound} />
-          </>
-        )}
 
         {/* Round History */}
         <RoundHistory rounds={tournament.rounds} />
