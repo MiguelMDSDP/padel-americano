@@ -54,6 +54,7 @@ export interface Tournament {
   players: Player[];
   rounds: Round[];
   status: TournamentStatus;
+  isActive: boolean; // Controls if tournament is currently active/visible
   lastUpdated: Date;
 }
 

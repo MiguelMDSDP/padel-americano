@@ -15,6 +15,7 @@ import { AdminDashboard } from '@/components/admin/AdminDashboard';
 import { PlayersManagement } from '@/components/admin/PlayersManagement';
 import { RoundConfigurator } from '@/components/admin/RoundConfigurator';
 import { DataExporter } from '@/components/admin/DataExporter';
+import { TournamentsManagement } from '@/components/admin/TournamentsManagement';
 import { toast } from 'sonner';
 
 const Admin = () => {
@@ -43,6 +44,7 @@ const Admin = () => {
         players: [],
         rounds: [],
         status: 'setup',
+        isActive: true,
         lastUpdated: new Date(),
       };
       await saveTournament(newTournament);
@@ -158,7 +160,7 @@ const Admin = () => {
           </Card>
         ) : (
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-            <TabsList className="grid w-full max-w-3xl grid-cols-4">
+            <TabsList className="grid w-full max-w-4xl grid-cols-5">
               <TabsTrigger value="players" className="flex items-center gap-2">
                 <Users className="w-4 h-4" />
                 Jogadores
@@ -181,6 +183,10 @@ const Admin = () => {
                     Ao Vivo
                   </Badge>
                 )}
+              </TabsTrigger>
+              <TabsTrigger value="tournaments" className="flex items-center gap-2">
+                <Trophy className="w-4 h-4" />
+                Torneios
               </TabsTrigger>
               <TabsTrigger value="data" className="flex items-center gap-2">
                 <Database className="w-4 h-4" />
@@ -307,6 +313,11 @@ const Admin = () => {
             {/* Dashboard Tab (Matches) */}
             <TabsContent value="dashboard">
               <AdminDashboard />
+            </TabsContent>
+
+            {/* Tournaments Tab (Management) */}
+            <TabsContent value="tournaments">
+              <TournamentsManagement />
             </TabsContent>
 
             {/* Data Tab (Export/Import) */}

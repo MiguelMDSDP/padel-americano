@@ -20,6 +20,7 @@ export interface Database {
           players: Json
           rounds: Json
           status: string
+          is_active: boolean
           last_updated: string
           created_at: string
         }
@@ -30,6 +31,7 @@ export interface Database {
           players: Json
           rounds: Json
           status: string
+          is_active?: boolean
           last_updated?: string
           created_at?: string
         }
@@ -40,6 +42,7 @@ export interface Database {
           players?: Json
           rounds?: Json
           status?: string
+          is_active?: boolean
           last_updated?: string
           created_at?: string
         }

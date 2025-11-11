@@ -72,10 +72,15 @@ export default function Home() {
                 </p>
               </div>
             </div>
-            {/* Admin Link */}
-            <Button variant="ghost" size="sm" asChild>
-              <Link to="/admin">Admin</Link>
-            </Button>
+            {/* Links */}
+            <div className="flex items-center gap-2">
+              <Button variant="ghost" size="sm" asChild>
+                <Link to="/historico">Histórico</Link>
+              </Button>
+              <Button variant="ghost" size="sm" asChild>
+                <Link to="/admin">Admin</Link>
+              </Button>
+            </div>
           </div>
         </div>
       </header>

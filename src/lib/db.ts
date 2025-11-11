@@ -17,6 +17,7 @@ function tournamentToSupabase(tournament: Tournament) {
     players: tournament.players,
     rounds: tournament.rounds,
     status: tournament.status,
+    is_active: tournament.isActive,
     last_updated: new Date().toISOString(),
   };
 }
@@ -40,6 +41,7 @@ function supabaseToTournament(row: any): Tournament {
       })),
     })),
     status: row.status,
+    isActive: row.is_active ?? true, // Default to true for backwards compatibility
     lastUpdated: new Date(row.last_updated),
   };
 }
@@ -67,13 +69,14 @@ export async function saveTournament(tournament: Tournament): Promise<void> {
 
 /**
  * Get active tournament from Supabase
- * Returns the most recently updated tournament, including finished ones
+ * Returns the most recently updated ACTIVE tournament
  */
 export async function getActiveTournament(): Promise<Tournament | null> {
   try {
     const { data, error } = await supabase
       .from('tournaments')
       .select('*')
+      .eq('is_active', true)
       .order('last_updated', { ascending: false })
       .limit(1)
       .single();
@@ -212,6 +215,64 @@ export async function importTournamentJSON(jsonString: string): Promise<Tourname
   } catch (error) {
     console.error('Error importing tournament:', error);
     throw new Error('Failed to import tournament');
+  }
+}
+
+/**
+ * Finalize tournament (mark as inactive)
+ * This makes the tournament no longer appear as "active"
+ */
+export async function finalizeTournament(id: string): Promise<void> {
+  try {
+    const { error } = await supabase
+      .from('tournaments')
+      .update({
+        is_active: false,
+        status: 'finished',
+        last_updated: new Date().toISOString()
+      })
+      .eq('id', id);
+
+    if (error) {
+      console.error('Supabase error:', error);
+      throw error;
+    }
+  } catch (error) {
+    console.error('Error finalizing tournament:', error);
+    throw new Error('Failed to finalize tournament');
+  }
+}
+
+/**
+ * Set tournament as active/inactive
+ * When setting a tournament as active, deactivates all others
+ */
+export async function setTournamentActive(id: string, isActive: boolean): Promise<void> {
+  try {
+    if (isActive) {
+      // First, deactivate all tournaments
+      await supabase
+        .from('tournaments')
+        .update({ is_active: false })
+        .neq('id', '');
+    }
+
+    // Then activate the selected one
+    const { error } = await supabase
+      .from('tournaments')
+      .update({
+        is_active: isActive,
+        last_updated: new Date().toISOString()
+      })
+      .eq('id', id);
+
+    if (error) {
+      console.error('Supabase error:', error);
+      throw error;
+    }
+  } catch (error) {
+    console.error('Error setting tournament active status:', error);
+    throw new Error('Failed to update tournament status');
   }
 }
 
