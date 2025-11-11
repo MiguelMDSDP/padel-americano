@@ -5,7 +5,7 @@ import { useParams, Link } from "react-router-dom";
 import { getTournamentById } from "@/lib/db";
 import type { Tournament } from "@/lib/types";
 import OverallRanking from "@/components/public/OverallRanking";
-import UpcomingMatchesReal from "@/components/public/UpcomingMatchesReal";
+import RoundMatches from "@/components/public/RoundMatches";
 import RoundHistory from "@/components/public/RoundHistory";
 import Podium from "@/components/public/Podium";
 import { Button } from "@/components/ui/button";
@@ -140,8 +140,8 @@ export default function TournamentDetails() {
         {/* Podium - Only show when tournament is finished */}
         {tournament.status === 'finished' && <Podium players={tournament.players} />}
 
-        {/* Upcoming Matches */}
-        {currentRound && <UpcomingMatchesReal round={currentRound} />}
+        {/* Round Matches */}
+        {currentRound && <RoundMatches round={currentRound} />}
 
         {/* Rankings */}
         <OverallRanking players={tournament.players} />
