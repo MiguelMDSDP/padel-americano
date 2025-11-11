@@ -7,6 +7,7 @@ import type { Tournament } from "@/lib/types";
 import OverallRanking from "@/components/public/OverallRanking";
 import UpcomingMatchesReal from "@/components/public/UpcomingMatchesReal";
 import RoundHistory from "@/components/public/RoundHistory";
+import Podium from "@/components/public/Podium";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Trophy, RefreshCw, ArrowLeft } from "lucide-react";
@@ -128,6 +129,9 @@ export default function TournamentDetails() {
 
       {/* Main Content */}
       <main className="container mx-auto px-4 py-6 space-y-8">
+        {/* Podium - Only show when tournament is finished */}
+        {tournament.status === 'finished' && <Podium players={tournament.players} />}
+
         {/* Upcoming Matches */}
         {currentRound && <UpcomingMatchesReal round={currentRound} />}
 
