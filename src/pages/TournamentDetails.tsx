@@ -65,14 +65,9 @@ export default function TournamentDetails() {
           <p className="text-muted-foreground">
             {error || "O torneio que você está procurando não existe"}
           </p>
-          <div className="flex gap-2 justify-center">
-            <Button variant="outline" asChild>
-              <Link to="/historico">Ver Histórico</Link>
-            </Button>
-            <Button asChild>
-              <Link to="/">Ir para Home</Link>
-            </Button>
-          </div>
+          <Button asChild>
+            <Link to="/">Voltar para Início</Link>
+          </Button>
         </div>
       </div>
     );
@@ -103,7 +98,7 @@ export default function TournamentDetails() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <Button variant="ghost" size="icon" asChild>
-                <Link to="/historico">
+                <Link to="/">
                   <ArrowLeft className="h-5 w-5" />
                 </Link>
               </Button>
@@ -124,7 +119,7 @@ export default function TournamentDetails() {
             <div className="flex items-center gap-2">
               {getStatusBadge()}
               <Button variant="ghost" size="sm" asChild>
-                <Link to="/">Home</Link>
+                <Link to="/admin">Admin</Link>
               </Button>
             </div>
           </div>

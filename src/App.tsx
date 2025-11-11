@@ -5,7 +5,6 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
-import Home from "./pages/Home";
 import Login from "./pages/Login";
 import Admin from "./pages/Admin";
 import TournamentHistory from "./pages/TournamentHistory";
@@ -22,7 +21,8 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <Routes>
-            <Route path="/" element={<Home />} />
+            <Route path="/" element={<TournamentHistory />} />
+            <Route path="/torneio/:id" element={<TournamentDetails />} />
             <Route path="/login" element={<Login />} />
             <Route
               path="/admin"
@@ -32,8 +32,6 @@ const App = () => (
                 </ProtectedRoute>
               }
             />
-            <Route path="/historico" element={<TournamentHistory />} />
-            <Route path="/historico/:id" element={<TournamentDetails />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

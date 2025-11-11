@@ -5,7 +5,7 @@ import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Trophy, Calendar, Users, ArrowLeft, RefreshCw, Eye } from "lucide-react";
+import { Trophy, Calendar, Users, RefreshCw, Eye } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -54,29 +54,27 @@ export default function TournamentHistory() {
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <Button variant="ghost" size="icon" asChild>
-                <Link to="/">
-                  <ArrowLeft className="h-5 w-5" />
-                </Link>
-              </Button>
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center">
-                  <Trophy className="w-6 h-6 text-primary-foreground" />
-                </div>
-                <div>
-                  <h1 className="text-xl md:text-2xl font-bold text-foreground">
-                    Histórico de Torneios
-                  </h1>
-                  <p className="text-sm text-muted-foreground">
-                    {tournaments.length} {tournaments.length === 1 ? 'torneio' : 'torneios'}
-                  </p>
-                </div>
+              <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center">
+                <Trophy className="w-6 h-6 text-primary-foreground" />
+              </div>
+              <div>
+                <h1 className="text-xl md:text-2xl font-bold text-foreground">
+                  PadelAmericano BR
+                </h1>
+                <p className="text-sm text-muted-foreground">
+                  {tournaments.length} {tournaments.length === 1 ? 'torneio' : 'torneios'}
+                </p>
               </div>
             </div>
-            <Button variant="outline" size="sm" onClick={refetch}>
-              <RefreshCw className="h-4 w-4 mr-2" />
-              Atualizar
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="sm" onClick={refetch}>
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Atualizar
+              </Button>
+              <Button variant="ghost" size="sm" asChild>
+                <Link to="/admin">Admin</Link>
+              </Button>
+            </div>
           </div>
         </div>
       </header>
@@ -143,7 +141,7 @@ export default function TournamentHistory() {
 
                     {/* Action */}
                     <Button variant="outline" className="w-full" asChild>
-                      <Link to={`/historico/${tournament.id}`}>
+                      <Link to={`/torneio/${tournament.id}`}>
                         <Eye className="h-4 w-4 mr-2" />
                         Ver Detalhes
                       </Link>
