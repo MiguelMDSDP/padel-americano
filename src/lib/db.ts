@@ -2,64 +2,271 @@
 // Supabase database client and helper functions
 
 import { supabase } from './supabase';
-import type { Tournament } from './types';
+import type { Tournament, Player, Round, Match } from './types';
+import type { Database } from './database.types';
+
+type DbPlayer = Database['public']['Tables']['players']['Row'];
+type DbRound = Database['public']['Tables']['rounds']['Row'];
+type DbMatch = Database['public']['Tables']['matches']['Row'];
 
 // Database helper functions
 
 /**
- * Convert Tournament object to Supabase format
+ * Convert database player to application Player type
  */
-function tournamentToSupabase(tournament: Tournament) {
+function dbPlayerToPlayer(dbPlayer: DbPlayer): Player {
   return {
-    id: tournament.id,
-    name: tournament.name,
-    start_date: tournament.startDate.toISOString(),
-    players: tournament.players,
-    rounds: tournament.rounds,
-    status: tournament.status,
-    is_active: tournament.isActive,
-    last_updated: new Date().toISOString(),
+    id: dbPlayer.id,
+    name: dbPlayer.name,
+    position: dbPlayer.position as 'drive' | 'backhand',
+    points: dbPlayer.points,
+    balance: dbPlayer.balance,
+    scored: dbPlayer.scored,
+    conceded: dbPlayer.conceded,
+    wins: dbPlayer.wins,
+    draws: dbPlayer.draws,
+    losses: dbPlayer.losses,
+    gamesPlayed: dbPlayer.games_played,
   };
 }
 
 /**
- * Convert Supabase row to Tournament object
+ * Convert application Player to database format
  */
-function supabaseToTournament(row: any): Tournament {
+function playerToDbPlayer(player: Player, tournamentId: string): Database['public']['Tables']['players']['Insert'] {
   return {
-    id: row.id,
-    name: row.name,
-    startDate: new Date(row.start_date),
-    players: row.players,
-    rounds: row.rounds.map((round: any) => ({
-      ...round,
-      configuredAt: round.configuredAt ? new Date(round.configuredAt) : undefined,
-      matches: round.matches.map((match: any) => ({
-        ...match,
-        startTime: match.startTime ? new Date(match.startTime) : undefined,
-        endTime: match.endTime ? new Date(match.endTime) : undefined,
-      })),
-    })),
-    status: row.status,
-    isActive: row.is_active ?? true, // Default to true for backwards compatibility
-    lastUpdated: new Date(row.last_updated),
+    id: player.id,
+    tournament_id: tournamentId,
+    name: player.name,
+    position: player.position,
+    points: player.points,
+    balance: player.balance,
+    scored: player.scored,
+    conceded: player.conceded,
+    wins: player.wins,
+    draws: player.draws,
+    losses: player.losses,
+    games_played: player.gamesPlayed,
   };
 }
 
 /**
- * Save tournament to Supabase
+ * Convert database match with player data to application Match type
+ */
+function dbMatchToMatch(
+  dbMatch: DbMatch,
+  playersMap: Map<string, Player>,
+  roundNumber: number
+): Match {
+  const pair1DrivePlayer = playersMap.get(dbMatch.pair1_drive_player_id);
+  const pair1BackhandPlayer = playersMap.get(dbMatch.pair1_backhand_player_id);
+  const pair2DrivePlayer = playersMap.get(dbMatch.pair2_drive_player_id);
+  const pair2BackhandPlayer = playersMap.get(dbMatch.pair2_backhand_player_id);
+
+  if (!pair1DrivePlayer || !pair1BackhandPlayer || !pair2DrivePlayer || !pair2BackhandPlayer) {
+    throw new Error('Invalid match data: missing player references');
+  }
+
+  return {
+    id: dbMatch.id,
+    round: roundNumber,
+    court: dbMatch.court as 'stone' | 'cresol',
+    pair1: {
+      drivePlayer: pair1DrivePlayer,
+      backhandPlayer: pair1BackhandPlayer,
+    },
+    pair2: {
+      drivePlayer: pair2DrivePlayer,
+      backhandPlayer: pair2BackhandPlayer,
+    },
+    pair1Score: dbMatch.pair1_score,
+    pair2Score: dbMatch.pair2_score,
+    status: dbMatch.status as 'waiting' | 'in_progress' | 'finished',
+    order: dbMatch.match_order,
+    startTime: dbMatch.start_time ? new Date(dbMatch.start_time) : undefined,
+    endTime: dbMatch.end_time ? new Date(dbMatch.end_time) : undefined,
+  };
+}
+
+/**
+ * Convert application Match to database format
+ */
+function matchToDbMatch(match: Match, roundId: string): Database['public']['Tables']['matches']['Insert'] {
+  return {
+    id: match.id,
+    round_id: roundId,
+    court: match.court,
+    pair1_drive_player_id: match.pair1.drivePlayer.id,
+    pair1_backhand_player_id: match.pair1.backhandPlayer.id,
+    pair2_drive_player_id: match.pair2.drivePlayer.id,
+    pair2_backhand_player_id: match.pair2.backhandPlayer.id,
+    pair1_score: match.pair1Score,
+    pair2_score: match.pair2Score,
+    status: match.status,
+    match_order: match.order,
+    start_time: match.startTime?.toISOString(),
+    end_time: match.endTime?.toISOString(),
+  };
+}
+
+/**
+ * Load tournament data with all related entities from database
+ */
+async function loadTournamentData(tournamentId: string): Promise<Tournament | null> {
+  // Load tournament
+  const { data: tournamentData, error: tournamentError } = await supabase
+    .from('tournaments')
+    .select('*')
+    .eq('id', tournamentId)
+    .single();
+
+  if (tournamentError) {
+    if (tournamentError.code === 'PGRST116') {
+      return null;
+    }
+    throw tournamentError;
+  }
+
+  // Load players
+  const { data: playersData, error: playersError } = await supabase
+    .from('players')
+    .select('*')
+    .eq('tournament_id', tournamentId);
+
+  if (playersError) throw playersError;
+
+  const players = (playersData || []).map(dbPlayerToPlayer);
+  const playersMap = new Map(players.map(p => [p.id, p]));
+
+  // Load rounds
+  const { data: roundsData, error: roundsError } = await supabase
+    .from('rounds')
+    .select('*')
+    .eq('tournament_id', tournamentId)
+    .order('number', { ascending: true });
+
+  if (roundsError) throw roundsError;
+
+  // Load all matches for all rounds
+  const roundIds = (roundsData || []).map(r => r.id);
+  const { data: matchesData, error: matchesError } = await supabase
+    .from('matches')
+    .select('*')
+    .in('round_id', roundIds.length > 0 ? roundIds : ['']);
+
+  if (matchesError) throw matchesError;
+
+  // Group matches by round_id
+  const matchesByRound = new Map<string, DbMatch[]>();
+  (matchesData || []).forEach(match => {
+    const matches = matchesByRound.get(match.round_id) || [];
+    matches.push(match);
+    matchesByRound.set(match.round_id, matches);
+  });
+
+  // Build rounds with matches
+  const rounds: Round[] = (roundsData || []).map(dbRound => {
+    const roundMatches = matchesByRound.get(dbRound.id) || [];
+    return {
+      number: dbRound.number,
+      matches: roundMatches.map(m => dbMatchToMatch(m, playersMap, dbRound.number)),
+      status: dbRound.status as 'configured' | 'in_progress' | 'finished',
+      configuredAt: dbRound.configured_at ? new Date(dbRound.configured_at) : undefined,
+    };
+  });
+
+  return {
+    id: tournamentData.id,
+    name: tournamentData.name,
+    startDate: new Date(tournamentData.start_date),
+    players,
+    rounds,
+    status: tournamentData.status as 'setup' | 'in_progress' | 'finished',
+    isActive: tournamentData.is_active,
+    lastUpdated: new Date(tournamentData.last_updated),
+  };
+}
+
+/**
+ * Save tournament to Supabase (with all related entities)
  */
 export async function saveTournament(tournament: Tournament): Promise<void> {
   try {
-    const data = tournamentToSupabase(tournament);
-
-    const { error } = await supabase
+    // Save tournament metadata
+    const { error: tournamentError } = await supabase
       .from('tournaments')
-      .upsert(data, { onConflict: 'id' });
+      .upsert({
+        id: tournament.id,
+        name: tournament.name,
+        start_date: tournament.startDate.toISOString(),
+        status: tournament.status,
+        is_active: tournament.isActive,
+        last_updated: new Date().toISOString(),
+      }, { onConflict: 'id' });
 
-    if (error) {
-      console.error('Supabase error:', error);
-      throw error;
+    if (tournamentError) {
+      console.error('Supabase error (tournament):', tournamentError);
+      throw tournamentError;
+    }
+
+    // Save players
+    const playersData = tournament.players.map(p => playerToDbPlayer(p, tournament.id));
+
+    // Delete existing players for this tournament first
+    await supabase
+      .from('players')
+      .delete()
+      .eq('tournament_id', tournament.id);
+
+    if (playersData.length > 0) {
+      const { error: playersError } = await supabase
+        .from('players')
+        .insert(playersData);
+
+      if (playersError) {
+        console.error('Supabase error (players):', playersError);
+        throw playersError;
+      }
+    }
+
+    // Save rounds and matches
+    for (const round of tournament.rounds) {
+      const roundId = `${tournament.id}-round-${round.number}`;
+
+      // Upsert round
+      const { error: roundError } = await supabase
+        .from('rounds')
+        .upsert({
+          id: roundId,
+          tournament_id: tournament.id,
+          number: round.number,
+          status: round.status,
+          configured_at: round.configuredAt?.toISOString(),
+        }, { onConflict: 'id' });
+
+      if (roundError) {
+        console.error('Supabase error (round):', roundError);
+        throw roundError;
+      }
+
+      // Delete existing matches for this round
+      await supabase
+        .from('matches')
+        .delete()
+        .eq('round_id', roundId);
+
+      // Insert matches
+      if (round.matches.length > 0) {
+        const matchesData = round.matches.map(m => matchToDbMatch(m, roundId));
+        const { error: matchesError } = await supabase
+          .from('matches')
+          .insert(matchesData);
+
+        if (matchesError) {
+          console.error('Supabase error (matches):', matchesError);
+          throw matchesError;
+        }
+      }
     }
   } catch (error) {
     console.error('Error saving tournament:', error);
@@ -75,7 +282,7 @@ export async function getActiveTournament(): Promise<Tournament | null> {
   try {
     const { data, error } = await supabase
       .from('tournaments')
-      .select('*')
+      .select('id')
       .eq('is_active', true)
       .order('last_updated', { ascending: false })
       .limit(1)
@@ -90,7 +297,7 @@ export async function getActiveTournament(): Promise<Tournament | null> {
       throw error;
     }
 
-    return data ? supabaseToTournament(data) : null;
+    return data ? await loadTournamentData(data.id) : null;
   } catch (error) {
     console.error('Error loading tournament:', error);
     throw new Error('Failed to load tournament');
@@ -102,21 +309,7 @@ export async function getActiveTournament(): Promise<Tournament | null> {
  */
 export async function getTournamentById(id: string): Promise<Tournament | null> {
   try {
-    const { data, error } = await supabase
-      .from('tournaments')
-      .select('*')
-      .eq('id', id)
-      .single();
-
-    if (error) {
-      if (error.code === 'PGRST116') {
-        return null;
-      }
-      console.error('Supabase error:', error);
-      throw error;
-    }
-
-    return data ? supabaseToTournament(data) : null;
+    return await loadTournamentData(id);
   } catch (error) {
     console.error('Error loading tournament by ID:', error);
     throw new Error('Failed to load tournament');
@@ -150,7 +343,7 @@ export async function getAllTournaments(): Promise<Tournament[]> {
   try {
     const { data, error } = await supabase
       .from('tournaments')
-      .select('*')
+      .select('id')
       .order('last_updated', { ascending: false });
 
     if (error) {
@@ -158,7 +351,20 @@ export async function getAllTournaments(): Promise<Tournament[]> {
       throw error;
     }
 
-    return data ? data.map(supabaseToTournament) : [];
+    if (!data || data.length === 0) {
+      return [];
+    }
+
+    // Load full tournament data for each tournament
+    const tournaments = await Promise.all(
+      data.map(async ({ id }) => {
+        const tournament = await loadTournamentData(id);
+        return tournament;
+      })
+    );
+
+    // Filter out any null values (in case some tournaments failed to load)
+    return tournaments.filter((t): t is Tournament => t !== null);
   } catch (error) {
     console.error('Error loading tournaments:', error);
     throw new Error('Failed to load tournaments');

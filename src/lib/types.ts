@@ -35,7 +35,7 @@ export interface Match {
   pair1Score: number;
   pair2Score: number;
   status: MatchStatus;
-  order: number; // 1 or 2 (match order on the court)
+  order: number; // Match order on the court (1, 2, 3, ...)
   startTime?: Date;
   endTime?: Date;
 }
