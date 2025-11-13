@@ -17,13 +17,27 @@ interface PairResult {
 }
 
 export default function Podium({ players }: PodiumProps) {
-  // Separate players by position and sort by points
+  // Separate players by position and sort by ranking criteria
+  // Criteria (in order): 1. Total points 2. Point balance 3. Total points scored
+  const sortPlayersByRanking = (a: Player, b: Player) => {
+    // 1. Compare total points
+    if (a.points !== b.points) {
+      return b.points - a.points; // Higher points first
+    }
+    // 2. Compare balance
+    if (a.balance !== b.balance) {
+      return b.balance - a.balance; // Higher balance first
+    }
+    // 3. Compare scored
+    return b.scored - a.scored; // Higher scored first
+  };
+
   const drivePlayers = players
     .filter((p) => p.position === "drive")
-    .sort((a, b) => b.points - a.points);
+    .sort(sortPlayersByRanking);
   const backhandPlayers = players
     .filter((p) => p.position === "backhand")
-    .sort((a, b) => b.points - a.points);
+    .sort(sortPlayersByRanking);
 
   // Form pairs: 1st drive with 1st backhand, 2nd with 2nd, etc
   const pairs: PairResult[] = [];
