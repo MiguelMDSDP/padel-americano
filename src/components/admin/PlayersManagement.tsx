@@ -5,8 +5,7 @@ import { useAdminTournament } from '@/contexts/AdminTournamentContext';
 import type { Player, Position } from '@/lib/types';
 import { saveTournament } from '@/lib/db';
 import { createPlayer } from '@/lib/utils/rankings';
-import { validatePlayerName, canAddPlayer } from '@/lib/utils/validations';
-import { TOURNAMENT_CONFIG } from '@/lib/constants';
+import { validatePlayerName, canAddPlayerDynamic } from '@/lib/utils/validations';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -37,7 +36,7 @@ export function PlayersManagement() {
 
   const driveCount = drivePlayers.length;
   const backhandCount = backhandPlayers.length;
-  const maxPlayers = TOURNAMENT_CONFIG.PLAYERS_PER_POSITION;
+  const maxPlayers = tournament?.config.totalPlayers ? tournament.config.totalPlayers / 2 : 12;
 
   /**
    * Handle adding a new player
@@ -54,8 +53,8 @@ export function PlayersManagement() {
       return;
     }
 
-    // Check if can add player for this position
-    const canAdd = canAddPlayer(tournament.players, position);
+    // Check if can add player for this position (dynamic validation)
+    const canAdd = canAddPlayerDynamic(tournament.players, position, tournament.config.totalPlayers);
     if (!canAdd.canAdd) {
       toast.error(canAdd.error!);
       return;
@@ -278,7 +277,7 @@ export function PlayersManagement() {
             <div className="text-center py-12 text-muted-foreground">
               <p className="text-lg">Nenhum jogador cadastrado ainda.</p>
               <p className="text-sm mt-2">
-                Adicione 24 jogadores (12 Drive + 12 Revés) para começar o torneio.
+                Adicione {tournament.config.totalPlayers} jogadores ({tournament.config.totalPlayers / 2} Drive + {tournament.config.totalPlayers / 2} Revés) para começar o torneio.
               </p>
             </div>
           )}

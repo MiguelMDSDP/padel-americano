@@ -2,7 +2,7 @@
 // Type definitions for PadelAmericano BR Tournament System
 
 export type Position = 'drive' | 'backhand';
-export type CourtType = 'stone' | 'cresol';
+export type CourtType = string; // Dynamic court names (e.g., 'Stone', 'Cresol', 'Court 3')
 export type MatchStatus = 'waiting' | 'in_progress' | 'finished';
 export type RoundStatus = 'configured' | 'in_progress' | 'finished';
 export type TournamentStatus = 'setup' | 'in_progress' | 'finished';
@@ -47,6 +47,30 @@ export interface Round {
   configuredAt?: Date;
 }
 
+export interface Court {
+  id: string;
+  tournamentId: string;
+  name: string;
+  color: string; // Hex color code: #RRGGBB
+  order: number;
+}
+
+export interface TournamentConfig {
+  totalPlayers: number;         // Must be multiple of 8, between 8 and 128
+  totalRounds: number;           // Number of rounds (1-10)
+  matchDurationMinutes: number;  // Duration of each match in minutes (5-60)
+  intervalMinutes: number;       // Interval between matches in minutes (0+)
+}
+
+export interface TournamentDuration {
+  matchesPerRound: number;
+  simultaneousMatches: number;
+  sequentialMatchesPerCourt: number;
+  timePerRoundMinutes: number;
+  totalTournamentMinutes: number;
+  totalTournamentFormatted: string; // e.g., "5h 0min"
+}
+
 export interface Tournament {
   id: string;
   name: string;
@@ -56,6 +80,8 @@ export interface Tournament {
   status: TournamentStatus;
   isActive: boolean; // Controls if tournament is currently active/visible
   lastUpdated: Date;
+  config: TournamentConfig;
+  courts: Court[];
 }
 
 // Helper type for ranking display

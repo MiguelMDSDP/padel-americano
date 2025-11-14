@@ -5,9 +5,10 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { AdminTournamentProvider, useAdminTournament } from '@/contexts/AdminTournamentContext';
 import { saveTournament } from '@/lib/db';
-import type { Tournament, Round } from '@/lib/types';
+import type { Tournament, Round, TournamentConfig, Court } from '@/lib/types';
 import { TOURNAMENT_CONFIG } from '@/lib/constants';
 import { Trophy, Users, Settings, LogOut, LayoutDashboard, Dices } from 'lucide-react';
+import { TournamentConfigForm } from '@/components/admin/TournamentConfigForm';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -42,7 +43,6 @@ const AdminContent = () => {
   const [showRoundConfig, setShowRoundConfig] = useState(false);
   const [loading, setLoading] = useState(false);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
-  const [tournamentName, setTournamentName] = useState('');
 
   // Admin tournament context
   const { tournament, allTournaments, selectedTournamentId, setSelectedTournamentId, refetch } = useAdminTournament();
@@ -57,42 +57,40 @@ const AdminContent = () => {
    * Open create tournament dialog
    */
   const handleOpenCreateDialog = () => {
-    setTournamentName(`Torneio ${new Date().toLocaleDateString('pt-BR')}`);
     setShowCreateDialog(true);
   };
 
   /**
-   * Create new tournament
+   * Create new tournament with full configuration
    */
-  const handleCreateTournament = async () => {
-    const trimmedName = tournamentName.trim();
-
-    if (!trimmedName) {
-      toast.error('O nome do torneio não pode estar vazio');
-      return;
-    }
-
-    if (trimmedName.length < 3) {
-      toast.error('O nome do torneio deve ter pelo menos 3 caracteres');
-      return;
-    }
-
+  const handleCreateTournament = async (name: string, config: TournamentConfig, courts: Court[]) => {
     setLoading(true);
     try {
+      const tournamentId = `tournament-${Date.now()}`;
+
+      // Generate proper IDs for courts linked to this tournament
+      const courtsWithIds = courts.map((court, index) => ({
+        ...court,
+        id: `${tournamentId}-court-${index + 1}`,
+        tournamentId,
+      }));
+
       const newTournament: Tournament = {
-        id: `tournament-${Date.now()}`,
-        name: trimmedName,
+        id: tournamentId,
+        name,
         startDate: new Date(),
         players: [],
         rounds: [],
         status: 'setup',
         isActive: true,
         lastUpdated: new Date(),
+        config,
+        courts: courtsWithIds,
       };
+
       await saveTournament(newTournament);
       toast.success('Torneio criado com sucesso!');
       setShowCreateDialog(false);
-      setTournamentName('');
       // Refresh tournaments list and select the new one
       refetch();
       setSelectedTournamentId(newTournament.id);
@@ -138,13 +136,15 @@ const AdminContent = () => {
   const driveCount = tournament?.players.filter((p) => p.position === 'drive').length || 0;
   const backhandCount = tournament?.players.filter((p) => p.position === 'backhand').length || 0;
   const totalPlayers = driveCount + backhandCount;
-  const hasAllPlayers = totalPlayers === TOURNAMENT_CONFIG.TOTAL_PLAYERS;
+  const expectedPlayers = tournament?.config.totalPlayers || TOURNAMENT_CONFIG.TOTAL_PLAYERS;
+  const expectedRounds = tournament?.config.totalRounds || TOURNAMENT_CONFIG.TOTAL_ROUNDS;
+  const hasAllPlayers = totalPlayers === expectedPlayers;
 
   const canConfigureNewRound =
     tournament &&
     hasAllPlayers &&
     (!currentRound || currentRound.status === 'finished') &&
-    nextRoundNumber <= TOURNAMENT_CONFIG.TOTAL_ROUNDS;
+    nextRoundNumber <= expectedRounds;
 
   const hasMatchesInProgress = currentRound && currentRound.status !== 'finished';
   const tournamentFinished = tournament?.status === 'finished';
@@ -228,7 +228,7 @@ const AdminContent = () => {
                 <Users className="w-4 h-4" />
                 Jogadores
                 <Badge variant="secondary" className="ml-1">
-                  {totalPlayers}/24
+                  {totalPlayers}/{expectedPlayers}
                 </Badge>
               </TabsTrigger>
               <TabsTrigger value="rounds" className="flex items-center gap-2" disabled={!hasAllPlayers && tournament.rounds.length === 0}>
@@ -268,7 +268,7 @@ const AdminContent = () => {
                     <CardContent className="py-4">
                       <p className="text-yellow-900 font-semibold flex items-center gap-2">
                         <span className="text-xl">⚠️</span>
-                        Adicione {TOURNAMENT_CONFIG.TOTAL_PLAYERS - totalPlayers} jogadores para sortear a Rodada 1
+                        Adicione {expectedPlayers - totalPlayers} jogadores para sortear a Rodada 1
                       </p>
                     </CardContent>
                   </Card>
@@ -287,7 +287,7 @@ const AdminContent = () => {
                     <CardTitle className="flex items-center justify-between">
                       <span>Gerenciar Rodadas</span>
                       <Badge variant="outline">
-                        {currentRoundNumber}/{TOURNAMENT_CONFIG.TOTAL_ROUNDS}
+                        {currentRoundNumber}/{expectedRounds}
                       </Badge>
                     </CardTitle>
                   </CardHeader>
@@ -301,7 +301,7 @@ const AdminContent = () => {
                           </Button>
                         ) : (
                           <p className="text-sm text-yellow-600">
-                            Complete o cadastro de 24 jogadores primeiro
+                            Complete o cadastro de {expectedPlayers} jogadores primeiro
                           </p>
                         )}
                       </div>
@@ -310,7 +310,7 @@ const AdminContent = () => {
                         <div className="flex items-center justify-between">
                           <div>
                             <h3 className="text-lg font-semibold">
-                              Rodada Atual: {currentRoundNumber} de {TOURNAMENT_CONFIG.TOTAL_ROUNDS}
+                              Rodada Atual: {currentRoundNumber} de {expectedRounds}
                             </h3>
                             <p
                               className={`text-sm mt-1 ${
@@ -337,7 +337,7 @@ const AdminContent = () => {
                           <Card className="border-l-4 border-primary bg-primary/5">
                             <CardContent className="py-4">
                               <p className="text-primary font-semibold">
-                                🏆 Torneio finalizado! Todas as {TOURNAMENT_CONFIG.TOTAL_ROUNDS} rodadas foram
+                                🏆 Torneio finalizado! Todas as {expectedRounds} rodadas foram
                                 completadas.
                               </p>
                             </CardContent>
@@ -371,47 +371,24 @@ const AdminContent = () => {
 
             {/* Tournaments Tab (Management) */}
             <TabsContent value="tournaments">
-              <TournamentsManagement />
+              <TournamentsManagement onCreateNew={handleOpenCreateDialog} />
             </TabsContent>
           </Tabs>
         )}
       </main>
 
       {/* Create Tournament Dialog */}
-      <AlertDialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Criar Novo Torneio</AlertDialogTitle>
-            <AlertDialogDescription>
-              Escolha um nome para o novo torneio. Você poderá adicionar jogadores e configurar rodadas depois.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <div className="py-4">
-            <Input
-              type="text"
-              value={tournamentName}
-              onChange={(e) => setTournamentName(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  handleCreateTournament();
-                }
-              }}
-              placeholder="Nome do Torneio"
-              maxLength={100}
-              autoFocus
+      {showCreateDialog && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-background rounded-lg shadow-xl max-w-3xl w-full max-h-[90vh] overflow-y-auto p-6">
+            <h2 className="text-2xl font-bold mb-4">Criar Novo Torneio</h2>
+            <TournamentConfigForm
+              onSubmit={handleCreateTournament}
+              onCancel={() => setShowCreateDialog(false)}
             />
           </div>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={loading}>Cancelar</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleCreateTournament}
-              disabled={loading || !tournamentName.trim()}
-            >
-              {loading ? 'Criando...' : 'Criar Torneio'}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+        </div>
+      )}
     </div>
   );
 };

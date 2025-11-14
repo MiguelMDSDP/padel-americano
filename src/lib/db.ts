@@ -2,12 +2,23 @@
 // Supabase database client and helper functions
 
 import { supabase } from './supabase';
-import type { Tournament, Player, Round, Match } from './types';
+import type { Tournament, Player, Round, Match, Court, TournamentConfig } from './types';
 import type { Database } from './database.types';
+import { getDefaultTournamentConfig, getDefaultCourts } from './utils/calculations';
 
 type DbPlayer = Database['public']['Tables']['players']['Row'];
 type DbRound = Database['public']['Tables']['rounds']['Row'];
 type DbMatch = Database['public']['Tables']['matches']['Row'];
+
+// Court type from database
+interface DbCourt {
+  id: string;
+  tournament_id: string;
+  name: string;
+  color: string;
+  court_order: number;
+  created_at: string;
+}
 
 // Database helper functions
 
@@ -47,6 +58,32 @@ function playerToDbPlayer(player: Player, tournamentId: string): Database['publi
     draws: player.draws,
     losses: player.losses,
     games_played: player.gamesPlayed,
+  };
+}
+
+/**
+ * Convert database court to application Court type
+ */
+function dbCourtToCourt(dbCourt: DbCourt): Court {
+  return {
+    id: dbCourt.id,
+    tournamentId: dbCourt.tournament_id,
+    name: dbCourt.name,
+    color: dbCourt.color,
+    order: dbCourt.court_order,
+  };
+}
+
+/**
+ * Convert application Court to database format
+ */
+function courtToDbCourt(court: Court, tournamentId: string): Omit<DbCourt, 'created_at'> {
+  return {
+    id: court.id,
+    tournament_id: tournamentId,
+    name: court.name,
+    color: court.color,
+    court_order: court.order,
   };
 }
 
@@ -138,6 +175,28 @@ async function loadTournamentData(tournamentId: string): Promise<Tournament | nu
   const players = (playersData || []).map(dbPlayerToPlayer);
   const playersMap = new Map(players.map(p => [p.id, p]));
 
+  // Load courts
+  const { data: courtsData, error: courtsError } = await supabase
+    .from('courts')
+    .select('*')
+    .eq('tournament_id', tournamentId)
+    .order('court_order', { ascending: true });
+
+  if (courtsError) throw courtsError;
+
+  const courts = (courtsData || []).map(dbCourtToCourt);
+
+  // If no courts found, use defaults
+  const finalCourts = courts.length > 0 ? courts : getDefaultCourts(tournamentId);
+
+  // Build tournament config from database fields or use defaults
+  const config: TournamentConfig = {
+    totalPlayers: tournamentData.total_players ?? 24,
+    totalRounds: tournamentData.total_rounds ?? 5,
+    matchDurationMinutes: tournamentData.match_duration_minutes ?? 15,
+    intervalMinutes: tournamentData.interval_minutes ?? 5,
+  };
+
   // Load rounds
   const { data: roundsData, error: roundsError } = await supabase
     .from('rounds')
@@ -184,6 +243,8 @@ async function loadTournamentData(tournamentId: string): Promise<Tournament | nu
     status: tournamentData.status as 'setup' | 'in_progress' | 'finished',
     isActive: tournamentData.is_active,
     lastUpdated: new Date(tournamentData.last_updated),
+    config,
+    courts: finalCourts,
   };
 }
 
@@ -192,7 +253,7 @@ async function loadTournamentData(tournamentId: string): Promise<Tournament | nu
  */
 export async function saveTournament(tournament: Tournament): Promise<void> {
   try {
-    // Save tournament metadata
+    // Save tournament metadata with config
     const { error: tournamentError } = await supabase
       .from('tournaments')
       .upsert({
@@ -202,11 +263,33 @@ export async function saveTournament(tournament: Tournament): Promise<void> {
         status: tournament.status,
         is_active: tournament.isActive,
         last_updated: new Date().toISOString(),
+        total_players: tournament.config.totalPlayers,
+        total_rounds: tournament.config.totalRounds,
+        match_duration_minutes: tournament.config.matchDurationMinutes,
+        interval_minutes: tournament.config.intervalMinutes,
       }, { onConflict: 'id' });
 
     if (tournamentError) {
       console.error('Supabase error (tournament):', tournamentError);
       throw tournamentError;
+    }
+
+    // Save courts (delete existing + insert new)
+    await supabase
+      .from('courts')
+      .delete()
+      .eq('tournament_id', tournament.id);
+
+    if (tournament.courts.length > 0) {
+      const courtsData = tournament.courts.map(c => courtToDbCourt(c, tournament.id));
+      const { error: courtsError } = await supabase
+        .from('courts')
+        .insert(courtsData);
+
+      if (courtsError) {
+        console.error('Supabase error (courts):', courtsError);
+        throw courtsError;
+      }
     }
 
     // Save players

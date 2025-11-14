@@ -1,9 +1,10 @@
 // All code in ENGLISH, UI labels in PORTUGUESE
 // Tournament algorithms: draw, pairing, and scheduling
 
-import type { Player, Pair, Match, Round, CourtType } from '../types';
+import type { Player, Pair, Match, Round, CourtType, Court, TournamentConfig } from '../types';
 import { calculateRanking } from './rankings';
 import { TOURNAMENT_CONFIG } from '../constants';
+import { getPlayersPerPosition } from './calculations';
 
 /**
  * Shuffle array using Fisher-Yates algorithm
@@ -36,20 +37,32 @@ function createPair(drivePlayer: Player, backhandPlayer: Player): Pair {
 
 /**
  * Draw Round 1 - Random pairs with random order
- * All 24 players participate (no one sits out)
+ * All players participate (no one sits out)
+ *
+ * @param players - List of all tournament players
+ * @param courts - List of courts available for the tournament
+ * @param config - Tournament configuration (optional, uses defaults if not provided)
+ * @returns Configured round with matches
  */
-export function drawRound1(players: Player[]): Round {
+export function drawRound1(
+  players: Player[],
+  courts: Court[],
+  config?: TournamentConfig
+): Round {
+  const totalPlayers = config?.totalPlayers ?? TOURNAMENT_CONFIG.TOTAL_PLAYERS;
+  const playersPerPosition = getPlayersPerPosition(totalPlayers);
+
   // Separate players by position
   const drivePlayers = players.filter((p) => p.position === 'drive');
   const backhandPlayers = players.filter((p) => p.position === 'backhand');
 
   // Validate correct number of players
   if (
-    drivePlayers.length !== TOURNAMENT_CONFIG.PLAYERS_PER_POSITION ||
-    backhandPlayers.length !== TOURNAMENT_CONFIG.PLAYERS_PER_POSITION
+    drivePlayers.length !== playersPerPosition ||
+    backhandPlayers.length !== playersPerPosition
   ) {
     throw new Error(
-      `Invalid player count. Need ${TOURNAMENT_CONFIG.PLAYERS_PER_POSITION} drive and ${TOURNAMENT_CONFIG.PLAYERS_PER_POSITION} backhand players`
+      `Invalid player count. Need ${playersPerPosition} drive and ${playersPerPosition} backhand players`
     );
   }
 
@@ -57,24 +70,28 @@ export function drawRound1(players: Player[]): Round {
   const shuffledDrive = shuffleArray(drivePlayers);
   const shuffledBackhand = shuffleArray(backhandPlayers);
 
-  // Create 12 pairs (all 24 players)
+  // Create pairs (all players)
   const pairs: Pair[] = [];
-  for (let i = 0; i < TOURNAMENT_CONFIG.PLAYERS_PER_POSITION; i++) {
+  for (let i = 0; i < playersPerPosition; i++) {
     pairs.push(createPair(shuffledDrive[i], shuffledBackhand[i]));
   }
 
-  // Create 6 matches from 12 pairs
+  // Create matches from pairs
+  const matchesPerRound = totalPlayers / 4; // Each match has 4 players (2 pairs)
   const matches: Match[] = [];
-  const courts: CourtType[] = ['stone', 'cresol'];
 
-  for (let i = 0; i < TOURNAMENT_CONFIG.MATCHES_PER_ROUND; i++) {
-    const court = courts[i % 2]; // Alternate between courts
-    const order = Math.floor(i / 2) + 1; // 1, 1, 2, 2, 3, 3
+  for (let i = 0; i < matchesPerRound; i++) {
+    const courtIndex = i % courts.length; // Cycle through available courts
+    const court = courts[courtIndex];
+
+    // Calculate order: how many sequential matches per court
+    const simultaneousMatches = Math.min(courts.length, matchesPerRound);
+    const order = Math.floor(i / simultaneousMatches) + 1;
 
     matches.push({
       id: generateMatchId(1, i),
       round: 1,
-      court,
+      court: court.name, // Use court name dynamically
       pair1: pairs[i * 2],
       pair2: pairs[i * 2 + 1],
       pair1Score: 0,
@@ -88,11 +105,16 @@ export function drawRound1(players: Player[]): Round {
   const shuffledMatches = shuffleArray(matches);
 
   // Reassign court positions after shuffle
-  const finalMatches = shuffledMatches.map((match, index) => ({
-    ...match,
-    court: courts[index % 2],
-    order: Math.floor(index / 2) + 1,
-  }));
+  const finalMatches = shuffledMatches.map((match, index) => {
+    const courtIndex = index % courts.length;
+    const simultaneousMatches = Math.min(courts.length, matchesPerRound);
+
+    return {
+      ...match,
+      court: courts[courtIndex].name,
+      order: Math.floor(index / simultaneousMatches) + 1,
+    };
+  });
 
   return {
     number: 1,
@@ -103,17 +125,29 @@ export function drawRound1(players: Player[]): Round {
 }
 
 /**
- * Configure rounds 2-5 based on current ranking
- * Pairs are formed by: 1st Drive + 12th Backhand, 2nd Drive + 11th Backhand, etc.
+ * Configure subsequent rounds (2-N) based on current ranking
+ * Pairs are formed by: 1st Drive + Last Backhand, 2nd Drive + 2nd-to-last Backhand, etc.
  * Matchups are randomized - any pair can face any other pair
- * All 24 players participate (no one sits out)
+ * All players participate (no one sits out)
+ *
+ * @param players - List of all tournament players with current stats
+ * @param roundNumber - Round number to configure (must be >= 2)
+ * @param courts - List of courts available for the tournament
+ * @param config - Tournament configuration (optional, uses defaults if not provided)
+ * @returns Configured round with matches
  */
 export function configureNextRound(
   players: Player[],
-  roundNumber: number
+  roundNumber: number,
+  courts: Court[],
+  config?: TournamentConfig
 ): Round {
-  if (roundNumber < 2 || roundNumber > TOURNAMENT_CONFIG.TOTAL_ROUNDS) {
-    throw new Error(`Invalid round number: ${roundNumber}`);
+  const totalPlayers = config?.totalPlayers ?? TOURNAMENT_CONFIG.TOTAL_PLAYERS;
+  const totalRounds = config?.totalRounds ?? TOURNAMENT_CONFIG.TOTAL_ROUNDS;
+  const playersPerPosition = getPlayersPerPosition(totalPlayers);
+
+  if (roundNumber < 2 || roundNumber > totalRounds) {
+    throw new Error(`Invalid round number: ${roundNumber}. Must be between 2 and ${totalRounds}`);
   }
 
   // Calculate current rankings
@@ -122,19 +156,19 @@ export function configureNextRound(
 
   // Validate rankings
   if (
-    driveRanking.length !== TOURNAMENT_CONFIG.PLAYERS_PER_POSITION ||
-    backhandRanking.length !== TOURNAMENT_CONFIG.PLAYERS_PER_POSITION
+    driveRanking.length !== playersPerPosition ||
+    backhandRanking.length !== playersPerPosition
   ) {
-    throw new Error('Invalid player count for ranking');
+    throw new Error(`Invalid player count for ranking. Expected ${playersPerPosition} per position`);
   }
 
   // Create balanced pairs based on ranking
-  // Pattern: 1st + 12th, 2nd + 11th, 3rd + 10th, etc.
+  // Pattern: 1st + Last, 2nd + 2nd-to-last, 3rd + 3rd-to-last, etc.
   const pairs: Pair[] = [];
 
-  for (let i = 0; i < TOURNAMENT_CONFIG.PLAYERS_PER_POSITION; i++) {
+  for (let i = 0; i < playersPerPosition; i++) {
     const drivePlayer = driveRanking[i];
-    const backhandPlayer = backhandRanking[TOURNAMENT_CONFIG.PLAYERS_PER_POSITION - 1 - i];
+    const backhandPlayer = backhandRanking[playersPerPosition - 1 - i];
 
     pairs.push(createPair(drivePlayer, backhandPlayer));
   }
@@ -142,22 +176,26 @@ export function configureNextRound(
   // Shuffle pairs to randomize matchups
   const shuffledPairs = shuffleArray(pairs);
 
-  // Create 6 matches from shuffled pairs
+  // Create matches from shuffled pairs
   // Each match pairs consecutive teams from shuffled array
+  const matchesPerRound = totalPlayers / 4;
   const matches: Match[] = [];
-  const courts: CourtType[] = ['stone', 'cresol'];
 
-  for (let i = 0; i < TOURNAMENT_CONFIG.MATCHES_PER_ROUND; i++) {
+  for (let i = 0; i < matchesPerRound; i++) {
     const pairA = shuffledPairs[i * 2]; // First pair of match
     const pairB = shuffledPairs[i * 2 + 1]; // Second pair of match
 
-    const court = courts[i % 2];
-    const order = Math.floor(i / 2) + 1;
+    const courtIndex = i % courts.length;
+    const court = courts[courtIndex];
+
+    // Calculate order: how many sequential matches per court
+    const simultaneousMatches = Math.min(courts.length, matchesPerRound);
+    const order = Math.floor(i / simultaneousMatches) + 1;
 
     matches.push({
       id: generateMatchId(roundNumber, i),
       round: roundNumber,
-      court,
+      court: court.name, // Use court name dynamically
       pair1: pairA,
       pair2: pairB,
       pair1Score: 0,
@@ -171,11 +209,16 @@ export function configureNextRound(
   const shuffledMatches = shuffleArray(matches);
 
   // Reassign court positions after shuffle
-  const finalMatches = shuffledMatches.map((match, index) => ({
-    ...match,
-    court: courts[index % 2],
-    order: Math.floor(index / 2) + 1,
-  }));
+  const finalMatches = shuffledMatches.map((match, index) => {
+    const courtIndex = index % courts.length;
+    const simultaneousMatches = Math.min(courts.length, matchesPerRound);
+
+    return {
+      ...match,
+      court: courts[courtIndex].name,
+      order: Math.floor(index / simultaneousMatches) + 1,
+    };
+  });
 
   return {
     number: roundNumber,

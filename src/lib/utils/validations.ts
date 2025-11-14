@@ -1,8 +1,9 @@
 // All code in ENGLISH, UI labels in PORTUGUESE
 // Validation utilities
 
-import type { Player, Tournament, Round, Match, Position } from '../types';
+import type { Player, Tournament, Round, Match, Position, TournamentConfig, Court } from '../types';
 import { TOURNAMENT_CONFIG } from '../constants';
+import { isValidPlayerCount } from './calculations';
 
 /**
  * Validate player name
@@ -331,4 +332,128 @@ export function validateTournament(tournament: Tournament): {
     isValid: errors.length === 0,
     errors,
   };
+}
+
+/**
+ * Validate hex color code format
+ */
+export function isValidHexColor(color: string): boolean {
+  return /^#[0-9A-Fa-f]{6}$/.test(color);
+}
+
+/**
+ * Validate tournament configuration
+ */
+export function validateTournamentConfig(
+  config: TournamentConfig,
+  courts: Court[]
+): {
+  isValid: boolean;
+  errors: string[];
+} {
+  const errors: string[] = [];
+
+  // Validate total players
+  if (!isValidPlayerCount(config.totalPlayers)) {
+    errors.push('Número de jogadores deve ser múltiplo de 8, entre 8 e 128');
+  }
+
+  // Validate total rounds
+  if (config.totalRounds < 1 || config.totalRounds > 10) {
+    errors.push('Número de rodadas deve estar entre 1 e 10');
+  }
+
+  // Validate match duration
+  if (config.matchDurationMinutes < 5 || config.matchDurationMinutes > 60) {
+    errors.push('Duração do jogo deve estar entre 5 e 60 minutos');
+  }
+
+  // Validate interval
+  if (config.intervalMinutes < 0) {
+    errors.push('Intervalo não pode ser negativo');
+  }
+
+  // Validate courts
+  if (courts.length === 0) {
+    errors.push('É necessário pelo menos 1 quadra');
+  }
+
+  // Validate court names are unique (case-insensitive)
+  const courtNames = courts.map((c) => c.name.toLowerCase().trim());
+  const uniqueNames = new Set(courtNames);
+  if (courtNames.length !== uniqueNames.size) {
+    errors.push('Nomes de quadras devem ser únicos');
+  }
+
+  // Validate court names are not empty
+  const emptyNames = courts.filter((c) => !c.name.trim());
+  if (emptyNames.length > 0) {
+    errors.push('Todas as quadras devem ter um nome');
+  }
+
+  // Validate colors
+  const invalidColors = courts.filter((c) => !isValidHexColor(c.color));
+  if (invalidColors.length > 0) {
+    errors.push('Todas as cores devem ser códigos hexadecimais válidos (#RRGGBB)');
+  }
+
+  return {
+    isValid: errors.length === 0,
+    errors,
+  };
+}
+
+/**
+ * Validate player count for dynamic tournament configuration
+ * Updated version that accepts playersPerPosition parameter
+ */
+export function validatePlayerCountDynamic(
+  players: Player[],
+  expectedPlayersPerPosition: number
+): {
+  isValid: boolean;
+  error?: string;
+  driveCount: number;
+  backhandCount: number;
+} {
+  const driveCount = players.filter((p) => p.position === 'drive').length;
+  const backhandCount = players.filter((p) => p.position === 'backhand').length;
+
+  const isValid =
+    driveCount === expectedPlayersPerPosition &&
+    backhandCount === expectedPlayersPerPosition;
+
+  return {
+    isValid,
+    error: isValid
+      ? undefined
+      : `É necessário ${expectedPlayersPerPosition} jogadores de cada posição. Atual: ${driveCount} Drive, ${backhandCount} Revés`,
+    driveCount,
+    backhandCount,
+  };
+}
+
+/**
+ * Validate that a player can be added (dynamic version)
+ */
+export function canAddPlayerDynamic(
+  players: Player[],
+  position: Position,
+  maxPlayersPerPosition: number
+): {
+  canAdd: boolean;
+  error?: string;
+} {
+  const positionCount = players.filter((p) => p.position === position).length;
+
+  if (positionCount >= maxPlayersPerPosition) {
+    return {
+      canAdd: false,
+      error: `Já existem ${maxPlayersPerPosition} jogadores na posição ${
+        position === 'drive' ? 'Drive' : 'Revés'
+      }`,
+    };
+  }
+
+  return { canAdd: true };
 }

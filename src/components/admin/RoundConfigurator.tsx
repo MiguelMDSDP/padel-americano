@@ -51,16 +51,16 @@ export function RoundConfigurator({
 
       if (roundNumber === 1) {
         // Round 1: Random draw
-        round = drawRound1(tournament.players);
+        round = drawRound1(tournament.players, tournament.courts, tournament.config);
         toast.info('Rodada 1 sorteada! Revise e confirme.');
       } else {
         // Rounds 2-5: Ranking-based pairing
-        round = configureNextRound(tournament.players, roundNumber);
+        round = configureNextRound(tournament.players, roundNumber, tournament.courts, tournament.config);
         toast.info(`Rodada ${roundNumber} configurada! Revise e confirme.`);
       }
 
       // Validate round
-      const isValid = validateRound(round, TOURNAMENT_CONFIG.TOTAL_PLAYERS);
+      const isValid = validateRound(round, tournament.config.totalPlayers);
       if (!isValid) {
         toast.error('Erro na configuração da rodada. Tente novamente.');
         setIsGenerating(false);
@@ -104,8 +104,8 @@ export function RoundConfigurator({
           <CardTitle className="text-2xl">Configurar Rodada {roundNumber}</CardTitle>
           <p className="text-muted-foreground text-sm mt-2">
             {roundNumber === 1
-              ? 'Sorteio aleatório dos 24 jogadores em 6 jogos'
-              : 'Pareamento baseado no ranking atual (1º + 12º, 2º + 11º, etc)'}
+              ? `Sorteio aleatório dos ${tournament.config.totalPlayers} jogadores em ${tournament.config.totalPlayers / 4} jogos`
+              : `Pareamento baseado no ranking atual (1º + ${tournament.config.totalPlayers / 2}º, 2º + ${tournament.config.totalPlayers / 2 - 1}º, etc)`}
           </p>
         </CardHeader>
       </Card>
@@ -148,17 +148,14 @@ export function RoundConfigurator({
 
           {/* Courts Preview */}
           <div className="space-y-4">
-            {/* Stone Court */}
-            <CourtPreview
-              court="stone"
-              matches={getMatchesByCourt(previewRound.matches, 'stone')}
-            />
-
-            {/* Cresol Court */}
-            <CourtPreview
-              court="cresol"
-              matches={getMatchesByCourt(previewRound.matches, 'cresol')}
-            />
+            {tournament.courts.map((court) => (
+              <CourtPreview
+                key={court.id}
+                courtName={court.name}
+                courtColor={court.color}
+                matches={getMatchesByCourt(previewRound.matches, court.name)}
+              />
+            ))}
           </div>
 
           {/* Action Buttons */}
@@ -196,9 +193,9 @@ export function RoundConfigurator({
             <div>
               <h4 className="font-semibold text-foreground mb-2">Informações</h4>
               <ul className="text-sm text-muted-foreground space-y-1">
-                <li>• Total de jogos: {TOURNAMENT_CONFIG.MATCHES_PER_ROUND}</li>
-                <li>• Jogos por quadra: 3</li>
-                <li>• Todos os 24 jogadores participam</li>
+                <li>• Total de jogos: {tournament.config.totalPlayers / 4}</li>
+                <li>• Jogos por quadra: {Math.ceil((tournament.config.totalPlayers / 4) / tournament.courts.length)}</li>
+                <li>• Todos os {tournament.config.totalPlayers} jogadores participam</li>
                 <li>• Cada jogador joga 1 vez por rodada</li>
                 {roundNumber === 1 && (
                   <li className="text-primary font-semibold">
@@ -207,7 +204,7 @@ export function RoundConfigurator({
                 )}
                 {roundNumber > 1 && (
                   <li className="text-primary font-semibold">
-                    • Rodadas 2-5: Pareamento balanceado por ranking
+                    • Rodadas 2-{tournament.config.totalRounds}: Pareamento balanceado por ranking
                   </li>
                 )}
               </ul>
@@ -224,20 +221,21 @@ export function RoundConfigurator({
  * Displays matches for a specific court
  */
 interface CourtPreviewProps {
-  court: 'stone' | 'cresol';
+  courtName: string;
+  courtColor: string;
   matches: Match[];
 }
 
-function CourtPreview({ court, matches }: CourtPreviewProps) {
+function CourtPreview({ courtName, courtColor, matches }: CourtPreviewProps) {
   // Sort matches by order
   const sortedMatches = [...matches].sort((a, b) => a.order - b.order);
 
   return (
     <Card className="overflow-hidden">
       {/* Court Header */}
-      <CardHeader className="bg-primary text-primary-foreground">
+      <CardHeader style={{ backgroundColor: courtColor }} className="text-white">
         <CardTitle className="text-lg flex items-center gap-2">
-          🏛️ Quadra {COURT_LABELS[court]}
+          🏛️ Quadra {courtName}
           <Badge variant="secondary" className="ml-auto">
             {sortedMatches.length} jogos
           </Badge>

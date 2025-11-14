@@ -17,12 +17,16 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Trophy, Calendar, Users, Eye, Trash2, CheckCircle, XCircle, Flag } from 'lucide-react';
+import { Trophy, Calendar, Users, Eye, Trash2, CheckCircle, XCircle, Flag, Plus } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
-export function TournamentsManagement() {
+interface TournamentsManagementProps {
+  onCreateNew?: () => void;
+}
+
+export function TournamentsManagement({ onCreateNew }: TournamentsManagementProps) {
   const { allTournaments: tournaments, tournamentsLoading: loading, refetch, setSelectedTournamentId: setActiveTournamentId } = useAdminTournament();
   const navigate = useNavigate();
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -113,8 +117,14 @@ export function TournamentsManagement() {
             <Trophy className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
             <h3 className="text-lg font-semibold mb-2">Nenhum torneio criado</h3>
             <p className="text-muted-foreground mb-4">
-              Crie um novo torneio na aba "Jogadores"
+              Crie um novo torneio para começar
             </p>
+            {onCreateNew && (
+              <Button onClick={onCreateNew} size="lg">
+                <Plus className="w-4 h-4 mr-2" />
+                Criar Novo Torneio
+              </Button>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -125,7 +135,15 @@ export function TournamentsManagement() {
     <>
       <Card>
         <CardHeader>
-          <CardTitle>Gerenciar Torneios</CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle>Gerenciar Torneios</CardTitle>
+            {onCreateNew && (
+              <Button onClick={onCreateNew}>
+                <Plus className="w-4 h-4 mr-2" />
+                Criar Novo Torneio
+              </Button>
+            )}
+          </div>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
