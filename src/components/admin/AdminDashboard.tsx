@@ -1,8 +1,8 @@
 // All code in ENGLISH, UI labels in PORTUGUESE
 
 import { useState } from 'react';
-import { useTournament } from '@/hooks/useTournament';
-import { saveTournament, getActiveTournament } from '@/lib/db';
+import { useAdminTournament } from '@/contexts/AdminTournamentContext';
+import { saveTournament, getTournamentById } from '@/lib/db';
 import { updatePlayerStats } from '@/lib/utils/rankings';
 import type { Tournament, Round, Match } from '@/lib/types';
 import { TOURNAMENT_CONFIG } from '@/lib/constants';
@@ -14,20 +14,20 @@ import { toast } from 'sonner';
 export const AdminDashboard = () => {
   const [loading, setLoading] = useState(false);
 
-  // Live sync with Supabase
-  const { tournament } = useTournament();
+  // Admin tournament context
+  const { tournament, selectedTournamentId } = useAdminTournament();
 
   /**
    * Finish match and update player stats
    */
   const handleMatchFinish = async (matchId: string, pair1Score: number, pair2Score: number) => {
-    if (!tournament) return;
+    if (!tournament || !selectedTournamentId) return;
 
     setLoading(true);
     try {
       // CRITICAL FIX: Always fetch the latest tournament data from the database
       // to avoid race conditions when finishing multiple matches quickly
-      const latestTournament = await getActiveTournament();
+      const latestTournament = await getTournamentById(selectedTournamentId);
       if (!latestTournament) {
         toast.error('Torneio não encontrado');
         return;

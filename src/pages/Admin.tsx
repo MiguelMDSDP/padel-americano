@@ -2,8 +2,8 @@
 
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useTournament } from '@/hooks/useTournament';
 import { useAuth } from '@/contexts/AuthContext';
+import { AdminTournamentProvider, useAdminTournament } from '@/contexts/AdminTournamentContext';
 import { saveTournament } from '@/lib/db';
 import type { Tournament, Round } from '@/lib/types';
 import { TOURNAMENT_CONFIG } from '@/lib/constants';
@@ -13,6 +13,13 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -29,7 +36,7 @@ import { RoundConfigurator } from '@/components/admin/RoundConfigurator';
 import { TournamentsManagement } from '@/components/admin/TournamentsManagement';
 import { toast } from 'sonner';
 
-const Admin = () => {
+const AdminContent = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('players');
   const [showRoundConfig, setShowRoundConfig] = useState(false);
@@ -37,8 +44,8 @@ const Admin = () => {
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [tournamentName, setTournamentName] = useState('');
 
-  // Live sync with Supabase
-  const { tournament } = useTournament();
+  // Admin tournament context
+  const { tournament, allTournaments, selectedTournamentId, setSelectedTournamentId, refetch } = useAdminTournament();
   const { signOut, user } = useAuth();
 
   const handleLogout = async () => {
@@ -86,6 +93,9 @@ const Admin = () => {
       toast.success('Torneio criado com sucesso!');
       setShowCreateDialog(false);
       setTournamentName('');
+      // Refresh tournaments list and select the new one
+      refetch();
+      setSelectedTournamentId(newTournament.id);
     } catch (err) {
       console.error('Error creating tournament:', err);
       toast.error('Erro ao criar torneio');
@@ -144,16 +154,43 @@ const Admin = () => {
       {/* Header */}
       <header className="border-b bg-card shadow-sm sticky top-0 z-10 backdrop-blur-sm bg-card/95">
         <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center">
                 <Trophy className="w-6 h-6 text-primary-foreground" />
               </div>
               <div>
                 <h1 className="text-xl md:text-2xl font-bold text-foreground">Painel Admin</h1>
-                <p className="text-sm text-muted-foreground">
-                  {tournament ? tournament.name : 'Torneio Stone & Cresol'}
-                </p>
+                {allTournaments.length > 0 && (
+                  <div className="flex items-center gap-2 mt-1">
+                    <span className="text-sm text-muted-foreground">Torneio:</span>
+                    <Select
+                      value={selectedTournamentId || undefined}
+                      onValueChange={(value) => {
+                        setSelectedTournamentId(value);
+                        setActiveTab('players');
+                      }}
+                    >
+                      <SelectTrigger className="h-7 w-[240px] text-xs">
+                        <SelectValue placeholder="Selecione um torneio" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {allTournaments.map((t) => (
+                          <SelectItem key={t.id} value={t.id}>
+                            <div className="flex items-center gap-2">
+                              <span>{t.name}</span>
+                              {t.isActive && (
+                                <Badge variant="default" className="h-4 px-1 text-[10px]">
+                                  Ativo
+                                </Badge>
+                              )}
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
               </div>
             </div>
             <Button variant="ghost" onClick={handleLogout}>
@@ -376,6 +413,14 @@ const Admin = () => {
         </AlertDialogContent>
       </AlertDialog>
     </div>
+  );
+};
+
+const Admin = () => {
+  return (
+    <AdminTournamentProvider>
+      <AdminContent />
+    </AdminTournamentProvider>
   );
 };
 

@@ -1,7 +1,7 @@
 // All code in ENGLISH, UI labels in PORTUGUESE
 
 import { useState, useMemo } from 'react';
-import { useTournament } from '@/hooks/useTournament';
+import { useAdminTournament } from '@/contexts/AdminTournamentContext';
 import type { Player, Position } from '@/lib/types';
 import { saveTournament } from '@/lib/db';
 import { createPlayer } from '@/lib/utils/rankings';
@@ -16,7 +16,7 @@ import { Users, Plus, Trash2, Search } from 'lucide-react';
 import { toast } from 'sonner';
 
 export function PlayersManagement() {
-  const { tournament } = useTournament();
+  const { tournament } = useAdminTournament();
 
   // Form state
   const [playerName, setPlayerName] = useState('');

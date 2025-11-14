@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAllTournaments } from '@/hooks/useAllTournaments';
+import { useAdminTournament } from '@/contexts/AdminTournamentContext';
 import { deleteTournament, setTournamentActive, finalizeTournament } from '@/lib/db';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -23,19 +23,19 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
 export function TournamentsManagement() {
-  const { tournaments, loading, refetch } = useAllTournaments();
+  const { allTournaments: tournaments, tournamentsLoading: loading, refetch, setSelectedTournamentId: setActiveTournamentId } = useAdminTournament();
   const navigate = useNavigate();
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [finalizeDialogOpen, setFinalizeDialogOpen] = useState(false);
-  const [selectedTournamentId, setSelectedTournamentId] = useState<string | null>(null);
+  const [selectedTournamentForAction, setSelectedTournamentForAction] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
 
   const handleDelete = async () => {
-    if (!selectedTournamentId) return;
+    if (!selectedTournamentForAction) return;
 
     setActionLoading(true);
     try {
-      await deleteTournament(selectedTournamentId);
+      await deleteTournament(selectedTournamentForAction);
       toast.success('Torneio deletado com sucesso');
       refetch();
     } catch (error) {
@@ -44,7 +44,7 @@ export function TournamentsManagement() {
     } finally {
       setActionLoading(false);
       setDeleteDialogOpen(false);
-      setSelectedTournamentId(null);
+      setSelectedTournamentForAction(null);
     }
   };
 
@@ -54,6 +54,10 @@ export function TournamentsManagement() {
       await setTournamentActive(id, isActive);
       toast.success(isActive ? 'Torneio ativado' : 'Torneio desativado');
       refetch();
+      // If activating, switch to this tournament
+      if (isActive) {
+        setActiveTournamentId(id);
+      }
     } catch (error) {
       toast.error('Erro ao alterar status do torneio');
       console.error(error);
@@ -63,11 +67,11 @@ export function TournamentsManagement() {
   };
 
   const handleFinalize = async () => {
-    if (!selectedTournamentId) return;
+    if (!selectedTournamentForAction) return;
 
     setActionLoading(true);
     try {
-      await finalizeTournament(selectedTournamentId);
+      await finalizeTournament(selectedTournamentForAction);
       toast.success('Torneio finalizado com sucesso');
       refetch();
     } catch (error) {
@@ -76,7 +80,7 @@ export function TournamentsManagement() {
     } finally {
       setActionLoading(false);
       setFinalizeDialogOpen(false);
-      setSelectedTournamentId(null);
+      setSelectedTournamentForAction(null);
     }
   };
 
@@ -171,7 +175,7 @@ export function TournamentsManagement() {
                         variant="outline"
                         size="sm"
                         onClick={() => {
-                          setSelectedTournamentId(tournament.id);
+                          setSelectedTournamentForAction(tournament.id);
                           setFinalizeDialogOpen(true);
                         }}
                         disabled={actionLoading}
@@ -208,7 +212,7 @@ export function TournamentsManagement() {
                       variant="destructive"
                       size="sm"
                       onClick={() => {
-                        setSelectedTournamentId(tournament.id);
+                        setSelectedTournamentForAction(tournament.id);
                         setDeleteDialogOpen(true);
                       }}
                       disabled={actionLoading}
