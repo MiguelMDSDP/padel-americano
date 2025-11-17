@@ -5,7 +5,6 @@ import { useAdminTournament } from '@/contexts/AdminTournamentContext';
 import { saveTournament, getTournamentById } from '@/lib/db';
 import { updatePlayerStats } from '@/lib/utils/rankings';
 import type { Tournament, Round, Match } from '@/lib/types';
-import { TOURNAMENT_CONFIG } from '@/lib/constants';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { MatchControl } from '@/components/admin/MatchControl';
@@ -85,7 +84,7 @@ export const AdminDashboard = () => {
         players: updatedPlayers,
         rounds: updatedRounds,
         status:
-          latestTournament.rounds.length === TOURNAMENT_CONFIG.TOTAL_ROUNDS && allFinished
+          latestTournament.rounds.length === latestTournament.config.totalRounds && allFinished
             ? 'finished'
             : 'in_progress',
       };
@@ -139,7 +138,7 @@ export const AdminDashboard = () => {
           <div className="flex items-center justify-between">
             <div>
               <CardTitle>
-                Rodada {currentRound.number} de {TOURNAMENT_CONFIG.TOTAL_ROUNDS}
+                Rodada {currentRound.number} de {tournament.config.totalRounds}
               </CardTitle>
               <p className="text-sm text-muted-foreground mt-1">
                 {finishedMatches} de {totalMatches} jogos finalizados
@@ -160,13 +159,14 @@ export const AdminDashboard = () => {
           <MatchControl
             key={match.id}
             match={match}
+            courts={tournament.courts}
             onFinish={handleMatchFinish}
           />
         ))}
       </div>
 
       {/* Next Round Indicator */}
-      {roundFinished && currentRound.number < TOURNAMENT_CONFIG.TOTAL_ROUNDS && (
+      {roundFinished && currentRound.number < tournament.config.totalRounds && (
         <Card className="bg-primary text-primary-foreground">
           <CardContent className="py-6 text-center">
             <p className="text-lg font-semibold">
@@ -181,7 +181,7 @@ export const AdminDashboard = () => {
         <Card className="bg-gradient-to-r from-primary to-accent text-primary-foreground">
           <CardContent className="py-8 text-center">
             <p className="text-2xl font-bold mb-2">🏆 Torneio Finalizado!</p>
-            <p className="text-lg">Todas as {TOURNAMENT_CONFIG.TOTAL_ROUNDS} rodadas foram completadas.</p>
+            <p className="text-lg">Todas as {tournament.config.totalRounds} rodadas foram completadas.</p>
           </CardContent>
         </Card>
       )}

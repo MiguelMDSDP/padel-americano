@@ -1,13 +1,13 @@
 // All code in ENGLISH, UI labels in PORTUGUESE
 
 import { useState, useEffect } from 'react';
-import type { Match } from '@/lib/types';
+import type { Match, Court } from '@/lib/types';
 import { validateScore, canFinishMatch } from '@/lib/utils/validations';
-import { COURT_LABELS } from '@/lib/constants';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { CourtBadge } from '@/components/ui/CourtBadge';
 import { Flag, Trophy } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -17,10 +17,11 @@ import { toast } from 'sonner';
  */
 interface MatchControlProps {
   match: Match;
+  courts: Court[];
   onFinish: (matchId: string, pair1Score: number, pair2Score: number) => void;
 }
 
-export function MatchControl({ match, onFinish }: MatchControlProps) {
+export function MatchControl({ match, courts, onFinish }: MatchControlProps) {
   // Score state
   const [pair1Score, setPair1Score] = useState(match.pair1Score);
   const [pair2Score, setPair2Score] = useState(match.pair2Score);
@@ -95,17 +96,22 @@ export function MatchControl({ match, onFinish }: MatchControlProps) {
       {/* Header */}
       <CardHeader>
         <div className="flex items-center justify-between">
-          <div>
+          <div className="flex items-center gap-2">
             <CardTitle className="text-lg">
-              Jogo {match.order} - Quadra {COURT_LABELS[match.court]}
+              Jogo {match.order}
             </CardTitle>
-            <p className="text-sm text-muted-foreground">Rodada {match.round}</p>
+            <CourtBadge courtName={match.court} courts={courts} />
           </div>
-          {isFinished && (
-            <Badge variant="default" className="bg-green-600">
-              ✓ Finalizado
+          <div className="flex items-center gap-2">
+            <Badge variant="outline" className="text-xs">
+              Rodada {match.round}
             </Badge>
-          )}
+            {isFinished && (
+              <Badge variant="default" className="bg-green-600">
+                ✓ Finalizado
+              </Badge>
+            )}
+          </div>
         </div>
       </CardHeader>
 

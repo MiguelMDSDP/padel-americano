@@ -1,29 +1,27 @@
 // All code in ENGLISH, UI labels in PORTUGUESE
 
-import type { Round, Match } from "@/lib/types";
-import { COURT_LABELS } from "@/lib/constants";
+import type { Round, Match, Court } from "@/lib/types";
 import {
   Card,
   CardHeader,
   CardTitle,
   CardContent,
 } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { CourtBadge } from "@/components/ui/CourtBadge";
 import { Play, Clock } from "lucide-react";
 
 interface UpcomingMatchesProps {
   round: Round;
+  courts: Court[];
 }
 
 /**
  * MatchCard - Displays a single match
  */
-function MatchCard({ match }: { match: Match }) {
+function MatchCard({ match, courts }: { match: Match; courts: Court[] }) {
   return (
     <div className="flex items-center gap-3 p-4 bg-muted/30 rounded-lg hover:bg-muted/50 transition-colors">
-      <Badge variant="secondary" className="font-semibold">
-        {COURT_LABELS[match.court]}
-      </Badge>
+      <CourtBadge courtName={match.court} courts={courts} className="font-semibold" />
       <div className="flex-1 text-sm">
         <span className="font-medium text-foreground">
           {match.pair1.drivePlayer.name} & {match.pair1.backhandPlayer.name}
@@ -37,36 +35,35 @@ function MatchCard({ match }: { match: Match }) {
   );
 }
 
-export default function UpcomingMatchesReal({ round }: UpcomingMatchesProps) {
-  // Get matches by court and sort by order
-  const stoneMatches = round.matches
-    .filter((m) => m.court === "stone")
-    .sort((a, b) => a.order - b.order);
-  const cresolMatches = round.matches
-    .filter((m) => m.court === "cresol")
-    .sort((a, b) => a.order - b.order);
+export default function UpcomingMatchesReal({ round, courts }: UpcomingMatchesProps) {
+  // Get unique court names from matches
+  const courtNames = Array.from(new Set(round.matches.map((m) => m.court)));
 
-  // Get all NOT finished matches for each court
-  const stoneNotFinished = stoneMatches.filter((m) => m.status !== "finished");
-  const cresolNotFinished = cresolMatches.filter((m) => m.status !== "finished");
+  // Group matches by court and get not finished matches
+  const matchesByCourt = courtNames.map((courtName) => {
+    const courtMatches = round.matches
+      .filter((m) => m.court === courtName)
+      .sort((a, b) => a.order - b.order);
 
-  // Current matches (first NOT finished from each court)
-  const currentMatches = [];
-  if (stoneNotFinished[0]) currentMatches.push(stoneNotFinished[0]);
-  if (cresolNotFinished[0]) currentMatches.push(cresolNotFinished[0]);
+    const notFinished = courtMatches.filter((m) => m.status !== "finished");
 
-  // Next matches (second NOT finished from each court)
-  const nextMatches = [];
-  if (stoneNotFinished[1]) nextMatches.push(stoneNotFinished[1]);
-  if (cresolNotFinished[1]) nextMatches.push(cresolNotFinished[1]);
-
-  // Sort by court (stone first)
-  const sortedCurrentMatches = currentMatches.sort((a, b) => {
-    return a.court === "stone" ? -1 : 1;
+    return {
+      courtName,
+      notFinished,
+    };
   });
-  const sortedNextMatches = nextMatches.sort((a, b) => {
-    return a.court === "stone" ? -1 : 1;
-  });
+
+  // Get current matches (first not finished from each court)
+  const currentMatches = matchesByCourt
+    .filter((c) => c.notFinished.length > 0)
+    .map((c) => c.notFinished[0])
+    .sort((a, b) => a.court.localeCompare(b.court));
+
+  // Get next matches (second not finished from each court)
+  const nextMatches = matchesByCourt
+    .filter((c) => c.notFinished.length > 1)
+    .map((c) => c.notFinished[1])
+    .sort((a, b) => a.court.localeCompare(b.court));
 
   // If no current matches, don't show anything
   if (currentMatches.length === 0) {
@@ -84,8 +81,8 @@ export default function UpcomingMatchesReal({ round }: UpcomingMatchesProps) {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
-          {sortedCurrentMatches.map((match) => (
-            <MatchCard key={match.id} match={match} />
+          {currentMatches.map((match) => (
+            <MatchCard key={match.id} match={match} courts={courts} />
           ))}
         </CardContent>
       </Card>
@@ -100,8 +97,8 @@ export default function UpcomingMatchesReal({ round }: UpcomingMatchesProps) {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            {sortedNextMatches.map((match) => (
-              <MatchCard key={match.id} match={match} />
+            {nextMatches.map((match) => (
+              <MatchCard key={match.id} match={match} courts={courts} />
             ))}
           </CardContent>
         </Card>

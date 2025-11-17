@@ -153,16 +153,19 @@ export function canConfigureRound(
   canConfigure: boolean;
   error?: string;
 } {
-  // Check if round number is valid (1-5)
-  if (roundNumber < 1 || roundNumber > TOURNAMENT_CONFIG.TOTAL_ROUNDS) {
+  const totalRounds = tournament.config.totalRounds;
+  const playersPerPosition = tournament.config.totalPlayers / 2;
+
+  // Check if round number is valid
+  if (roundNumber < 1 || roundNumber > totalRounds) {
     return {
       canConfigure: false,
-      error: `Número de rodada inválido. Deve ser entre 1 e ${TOURNAMENT_CONFIG.TOTAL_ROUNDS}`,
+      error: `Número de rodada inválido. Deve ser entre 1 e ${totalRounds}`,
     };
   }
 
   // Check if tournament has correct number of players
-  const playerValidation = validatePlayerCount(tournament.players);
+  const playerValidation = validatePlayerCountDynamic(tournament.players, playersPerPosition);
   if (!playerValidation.isValid) {
     return {
       canConfigure: false,
@@ -297,7 +300,8 @@ export function validateTournament(tournament: Tournament): {
     errors.push('Array de jogadores ausente ou inválido');
   } else {
     // Validate players
-    const playerValidation = validatePlayerCount(tournament.players);
+    const playersPerPosition = tournament.config.totalPlayers / 2;
+    const playerValidation = validatePlayerCountDynamic(tournament.players, playersPerPosition);
     if (!playerValidation.isValid) {
       errors.push(playerValidation.error!);
     }
@@ -314,15 +318,18 @@ export function validateTournament(tournament: Tournament): {
     errors.push('Array de rodadas ausente ou inválido');
   } else {
     // Validate rounds
-    if (tournament.rounds.length > TOURNAMENT_CONFIG.TOTAL_ROUNDS) {
-      errors.push(`Máximo de ${TOURNAMENT_CONFIG.TOTAL_ROUNDS} rodadas permitido`);
+    const totalRounds = tournament.config.totalRounds;
+    const matchesPerRound = tournament.config.totalPlayers / 4;
+
+    if (tournament.rounds.length > totalRounds) {
+      errors.push(`Máximo de ${totalRounds} rodadas permitido`);
     }
 
     // Validate each round
     tournament.rounds.forEach((round) => {
-      if (round.matches.length !== TOURNAMENT_CONFIG.MATCHES_PER_ROUND) {
+      if (round.matches.length !== matchesPerRound) {
         errors.push(
-          `Rodada ${round.number} deve ter ${TOURNAMENT_CONFIG.MATCHES_PER_ROUND} jogos`
+          `Rodada ${round.number} deve ter ${matchesPerRound} jogos`
         );
       }
     });

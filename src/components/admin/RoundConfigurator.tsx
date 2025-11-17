@@ -4,7 +4,6 @@ import { useState } from 'react';
 import type { Tournament, Round, Match } from '@/lib/types';
 import { drawRound1, configureNextRound, getMatchesByCourt, validateRound } from '@/lib/utils/algorithms';
 import { canConfigureRound } from '@/lib/utils/validations';
-import { COURT_LABELS, TOURNAMENT_CONFIG } from '@/lib/constants';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';

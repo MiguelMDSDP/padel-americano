@@ -1,7 +1,6 @@
 // All code in ENGLISH, UI labels in PORTUGUESE
 
-import type { Round, Match } from "@/lib/types";
-import { COURT_LABELS } from "@/lib/constants";
+import type { Round, Match, Court } from "@/lib/types";
 import {
   Card,
   CardHeader,
@@ -9,16 +8,18 @@ import {
   CardContent,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { CourtBadge } from "@/components/ui/CourtBadge";
 import { Trophy } from "lucide-react";
 
 interface RoundMatchesProps {
   round: Round;
+  courts: Court[];
 }
 
 /**
  * MatchCard - Displays a single match with status and score
  */
-function MatchCard({ match }: { match: Match }) {
+function MatchCard({ match, courts }: { match: Match; courts: Court[] }) {
   const isFinished = match.status === "finished";
 
   return (
@@ -27,9 +28,7 @@ function MatchCard({ match }: { match: Match }) {
         <Badge variant="secondary" className="font-semibold">
           Jogo {match.order}
         </Badge>
-        <Badge variant="outline">
-          {COURT_LABELS[match.court]}
-        </Badge>
+        <CourtBadge courtName={match.court} courts={courts} />
         {isFinished ? (
           <Badge variant="default" className="bg-green-600">
             ✓ Finalizado
@@ -93,7 +92,7 @@ function MatchCard({ match }: { match: Match }) {
   );
 }
 
-export default function RoundMatches({ round }: RoundMatchesProps) {
+export default function RoundMatches({ round, courts }: RoundMatchesProps) {
   // Sort matches by order
   const sortedMatches = [...round.matches].sort((a, b) => a.order - b.order);
 
@@ -115,7 +114,7 @@ export default function RoundMatches({ round }: RoundMatchesProps) {
       <CardContent>
         <div className="grid md:grid-cols-2 gap-4">
           {sortedMatches.map((match) => (
-            <MatchCard key={match.id} match={match} />
+            <MatchCard key={match.id} match={match} courts={courts} />
           ))}
         </div>
       </CardContent>

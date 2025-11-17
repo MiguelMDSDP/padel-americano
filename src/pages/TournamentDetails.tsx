@@ -141,13 +141,13 @@ export default function TournamentDetails() {
         {tournament.status === 'finished' && <Podium players={tournament.players} />}
 
         {/* Round Matches */}
-        {currentRound && <RoundMatches round={currentRound} />}
+        {currentRound && <RoundMatches round={currentRound} courts={tournament.courts} />}
 
         {/* Rankings */}
         <OverallRanking players={tournament.players} />
 
         {/* Round History */}
-        <RoundHistory rounds={tournament.rounds} />
+        <RoundHistory rounds={tournament.rounds} courts={tournament.courts} />
 
         {/* Footer */}
         <footer className="text-center py-8 text-muted-foreground">

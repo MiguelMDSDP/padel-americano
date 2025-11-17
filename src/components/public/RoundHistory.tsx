@@ -1,8 +1,7 @@
 // All code in ENGLISH, UI labels in PORTUGUESE
 
 import { useState } from "react";
-import type { Round } from "@/lib/types";
-import { COURT_LABELS } from "@/lib/constants";
+import type { Round, Court } from "@/lib/types";
 import {
   Card,
   CardHeader,
@@ -10,13 +9,15 @@ import {
   CardContent,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { CourtBadge } from "@/components/ui/CourtBadge";
 import { History, ChevronDown, ChevronUp } from "lucide-react";
 
 interface RoundHistoryProps {
   rounds: Round[];
+  courts: Court[];
 }
 
-export default function RoundHistory({ rounds }: RoundHistoryProps) {
+export default function RoundHistory({ rounds, courts }: RoundHistoryProps) {
   const finishedRounds = rounds.filter((r) => r.status === "finished");
 
   if (finishedRounds.length === 0) {
@@ -33,14 +34,14 @@ export default function RoundHistory({ rounds }: RoundHistoryProps) {
       </CardHeader>
       <CardContent className="space-y-3">
         {finishedRounds.map((round) => (
-          <RoundAccordion key={round.number} round={round} />
+          <RoundAccordion key={round.number} round={round} courts={courts} />
         ))}
       </CardContent>
     </Card>
   );
 }
 
-function RoundAccordion({ round }: { round: Round }) {
+function RoundAccordion({ round, courts }: { round: Round; courts: Court[] }) {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
@@ -75,9 +76,7 @@ function RoundAccordion({ round }: { round: Round }) {
                 className="p-3 bg-card rounded-lg border text-sm"
               >
                 <div className="flex items-center justify-center gap-2 mb-2">
-                  <Badge variant="outline" className="font-semibold text-xs">
-                    {COURT_LABELS[match.court]}
-                  </Badge>
+                  <CourtBadge courtName={match.court} courts={courts} className="text-xs" />
                 </div>
                 <div className="flex items-center justify-center gap-4">
                   <div className="flex-1 text-right">
