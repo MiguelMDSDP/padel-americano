@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Users, Plus, Trash2, Search } from 'lucide-react';
+import { Users, Plus, Trash2, Search, Pencil, Check, X } from 'lucide-react';
 import { toast } from 'sonner';
 
 export function PlayersManagement() {
@@ -22,6 +22,8 @@ export function PlayersManagement() {
   const [position, setPosition] = useState<Position>('drive');
   const [searchTerm, setSearchTerm] = useState('');
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
+  const [editingPlayer, setEditingPlayer] = useState<string | null>(null);
+  const [editName, setEditName] = useState('');
 
   // Calculate player counts
   const drivePlayers = useMemo(
@@ -118,6 +120,70 @@ export function PlayersManagement() {
 
     // Clear confirmation
     setConfirmDelete(null);
+  };
+
+  /**
+   * Start editing a player's name
+   */
+  const handleStartEdit = (playerId: string, currentName: string) => {
+    setEditingPlayer(playerId);
+    setEditName(currentName);
+  };
+
+  /**
+   * Cancel editing
+   */
+  const handleCancelEdit = () => {
+    setEditingPlayer(null);
+    setEditName('');
+  };
+
+  /**
+   * Save edited player name
+   */
+  const handleSaveEdit = async (playerId: string) => {
+    if (!tournament) return;
+
+    const trimmedName = editName.trim();
+
+    // Validate name
+    const nameValidation = validatePlayerName(trimmedName);
+    if (!nameValidation.isValid) {
+      toast.error(nameValidation.error!);
+      return;
+    }
+
+    // Check for duplicate names (case-insensitive), excluding the current player
+    const duplicateCheck = tournament.players.find(
+      (p) => p.id !== playerId && p.name.toLowerCase() === trimmedName.toLowerCase()
+    );
+
+    if (duplicateCheck) {
+      toast.error(`Jogador "${trimmedName}" já está cadastrado`);
+      return;
+    }
+
+    // Get old name for toast message
+    const player = tournament.players.find((p) => p.id === playerId);
+    if (!player) return;
+
+    const oldName = player.name;
+
+    // Update tournament with new name
+    const updatedTournament = {
+      ...tournament,
+      players: tournament.players.map((p) =>
+        p.id === playerId ? { ...p, name: trimmedName } : p
+      ),
+      lastUpdated: new Date(),
+    };
+
+    await saveTournament(updatedTournament);
+    toast.success(`Jogador "${oldName}" renomeado para "${trimmedName}"`);
+
+    // Clear edit state
+    setEditingPlayer(null);
+    setEditName('');
   };
 
   /**
@@ -257,6 +323,12 @@ export function PlayersManagement() {
               confirmDelete={confirmDelete}
               setConfirmDelete={setConfirmDelete}
               searchTerm={searchTerm}
+              editingPlayer={editingPlayer}
+              editName={editName}
+              onStartEdit={handleStartEdit}
+              onCancelEdit={handleCancelEdit}
+              onSaveEdit={handleSaveEdit}
+              setEditName={setEditName}
             />
 
             {/* Backhand Players */}
@@ -269,6 +341,12 @@ export function PlayersManagement() {
               confirmDelete={confirmDelete}
               setConfirmDelete={setConfirmDelete}
               searchTerm={searchTerm}
+              editingPlayer={editingPlayer}
+              editName={editName}
+              onStartEdit={handleStartEdit}
+              onCancelEdit={handleCancelEdit}
+              onSaveEdit={handleSaveEdit}
+              setEditName={setEditName}
             />
           </div>
 
@@ -300,6 +378,12 @@ interface PlayerListProps {
   confirmDelete: string | null;
   setConfirmDelete: (id: string | null) => void;
   searchTerm: string;
+  editingPlayer: string | null;
+  editName: string;
+  onStartEdit: (playerId: string, currentName: string) => void;
+  onCancelEdit: () => void;
+  onSaveEdit: (playerId: string) => void;
+  setEditName: (name: string) => void;
 }
 
 function PlayerList({
@@ -311,6 +395,12 @@ function PlayerList({
   confirmDelete,
   setConfirmDelete,
   searchTerm,
+  editingPlayer,
+  editName,
+  onStartEdit,
+  onCancelEdit,
+  onSaveEdit,
+  setEditName,
 }: PlayerListProps) {
   return (
     <Card>
@@ -336,42 +426,99 @@ function PlayerList({
                 key={player.id}
                 className="flex items-center justify-between p-3 hover:bg-muted/30 transition-colors"
               >
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 flex-1">
                   <span className="text-sm font-semibold text-muted-foreground w-6">
                     {index + 1}.
                   </span>
-                  <span className="font-medium">{player.name}</span>
+
+                  {/* Edit mode */}
+                  {editingPlayer === player.id ? (
+                    <Input
+                      type="text"
+                      value={editName}
+                      onChange={(e) => setEditName(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          onSaveEdit(player.id);
+                        } else if (e.key === 'Escape') {
+                          onCancelEdit();
+                        }
+                      }}
+                      className="h-8"
+                      maxLength={50}
+                      autoFocus
+                    />
+                  ) : (
+                    <span className="font-medium">{player.name}</span>
+                  )}
                 </div>
 
-                {/* Delete Button */}
-                {confirmDelete === player.id ? (
-                  <div className="flex gap-2">
-                    <Button
-                      size="sm"
-                      variant="destructive"
-                      onClick={() => onDelete(player.id)}
-                    >
-                      Confirmar
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => setConfirmDelete(null)}
-                    >
-                      Cancelar
-                    </Button>
-                  </div>
-                ) : (
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    onClick={() => setConfirmDelete(player.id)}
-                    className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                    title="Remover jogador"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
-                )}
+                {/* Action Buttons */}
+                <div className="flex gap-2">
+                  {editingPlayer === player.id ? (
+                    /* Edit mode: Save/Cancel buttons */
+                    <>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        onClick={() => onSaveEdit(player.id)}
+                        className="text-green-600 hover:text-green-700 hover:bg-green-100"
+                        title="Salvar"
+                      >
+                        <Check className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        onClick={onCancelEdit}
+                        className="text-muted-foreground hover:text-foreground"
+                        title="Cancelar"
+                      >
+                        <X className="w-4 h-4" />
+                      </Button>
+                    </>
+                  ) : confirmDelete === player.id ? (
+                    /* Delete confirmation */
+                    <>
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        onClick={() => onDelete(player.id)}
+                      >
+                        Confirmar
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => setConfirmDelete(null)}
+                      >
+                        Cancelar
+                      </Button>
+                    </>
+                  ) : (
+                    /* Normal mode: Edit/Delete buttons */
+                    <>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        onClick={() => onStartEdit(player.id, player.name)}
+                        className="text-muted-foreground hover:text-foreground"
+                        title="Editar nome"
+                      >
+                        <Pencil className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        onClick={() => setConfirmDelete(player.id)}
+                        className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                        title="Remover jogador"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </>
+                  )}
+                </div>
               </div>
             ))
           )}

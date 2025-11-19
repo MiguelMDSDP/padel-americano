@@ -153,47 +153,50 @@ const AdminContent = () => {
     <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="border-b bg-card shadow-sm sticky top-0 z-10 backdrop-blur-sm bg-card/95">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between gap-4">
+        <div className="container mx-auto px-4 py-3 md:py-4">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 md:gap-4">
+            {/* Title and Logo */}
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center">
+              <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center shrink-0">
                 <Trophy className="w-6 h-6 text-primary-foreground" />
               </div>
-              <div>
-                <h1 className="text-xl md:text-2xl font-bold text-foreground">Painel Admin</h1>
-                {allTournaments.length > 0 && (
-                  <div className="flex items-center gap-2 mt-1">
-                    <span className="text-sm text-muted-foreground">Torneio:</span>
-                    <Select
-                      value={selectedTournamentId || undefined}
-                      onValueChange={(value) => {
-                        setSelectedTournamentId(value);
-                        setActiveTab('players');
-                      }}
-                    >
-                      <SelectTrigger className="h-7 w-[240px] text-xs">
-                        <SelectValue placeholder="Selecione um torneio" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {allTournaments.map((t) => (
-                          <SelectItem key={t.id} value={t.id}>
-                            <div className="flex items-center gap-2">
-                              <span>{t.name}</span>
-                              {t.isActive && (
-                                <Badge variant="default" className="h-4 px-1 text-[10px]">
-                                  Ativo
-                                </Badge>
-                              )}
-                            </div>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                )}
-              </div>
+              <h1 className="text-xl md:text-2xl font-bold text-foreground">Painel Admin</h1>
             </div>
-            <Button variant="ghost" onClick={handleLogout}>
+
+            {/* Tournament Selector */}
+            {allTournaments.length > 0 && (
+              <div className="flex items-center gap-3 flex-1 md:flex-initial">
+                <span className="text-sm font-medium text-muted-foreground shrink-0">Torneio:</span>
+                <Select
+                  value={selectedTournamentId || undefined}
+                  onValueChange={(value) => {
+                    setSelectedTournamentId(value);
+                    setActiveTab('players');
+                  }}
+                >
+                  <SelectTrigger className="h-9 w-full md:w-[400px]">
+                    <SelectValue placeholder="Selecione um torneio" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {allTournaments.map((t) => (
+                      <SelectItem key={t.id} value={t.id}>
+                        <div className="flex items-center gap-2 justify-between w-full">
+                          <span>{t.name}</span>
+                          {t.isActive && (
+                            <Badge variant="default" className="ml-2">
+                              Ativo
+                            </Badge>
+                          )}
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
+            {/* Logout Button */}
+            <Button variant="ghost" onClick={handleLogout} className="self-end md:self-auto">
               <LogOut className="w-5 h-5 mr-2" />
               Sair
             </Button>
