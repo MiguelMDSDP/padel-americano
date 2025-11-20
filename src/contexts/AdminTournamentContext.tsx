@@ -20,6 +20,9 @@ interface AdminTournamentContextType {
   tournamentsLoading: boolean;
   // Force refresh
   refetch: () => void;
+  // Polling controls
+  pausePolling: () => void;
+  resumePolling: () => Promise<void>;
 }
 
 const AdminTournamentContext = createContext<AdminTournamentContextType | undefined>(undefined);
@@ -27,7 +30,7 @@ const AdminTournamentContext = createContext<AdminTournamentContextType | undefi
 export function AdminTournamentProvider({ children }: { children: ReactNode }) {
   const [selectedTournamentId, setSelectedTournamentId] = useState<string | null>(null);
   const { tournaments: allTournaments, loading: tournamentsLoading, refetch } = useAllTournaments();
-  const { tournament, loading } = useTournamentById(selectedTournamentId);
+  const { tournament, loading, pausePolling, resumePolling } = useTournamentById(selectedTournamentId);
 
   // Auto-select active tournament on mount or when tournaments change
   useEffect(() => {
@@ -53,6 +56,8 @@ export function AdminTournamentProvider({ children }: { children: ReactNode }) {
         loading,
         tournamentsLoading,
         refetch,
+        pausePolling,
+        resumePolling,
       }}
     >
       {children}

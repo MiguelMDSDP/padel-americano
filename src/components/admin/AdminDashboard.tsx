@@ -1,6 +1,6 @@
 // All code in ENGLISH, UI labels in PORTUGUESE
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { useAdminTournament } from '@/contexts/AdminTournamentContext';
 import { saveTournament, getTournamentById } from '@/lib/db';
 import { updatePlayerStats } from '@/lib/utils/rankings';
@@ -14,15 +14,20 @@ export const AdminDashboard = () => {
   const [loading, setLoading] = useState(false);
 
   // Admin tournament context
-  const { tournament, selectedTournamentId } = useAdminTournament();
+  const { tournament, selectedTournamentId, pausePolling, resumePolling } = useAdminTournament();
 
   /**
    * Finish match and update player stats
+   * Memoized to prevent unnecessary re-renders of child components
    */
-  const handleMatchFinish = async (matchId: string, pair1Score: number, pair2Score: number) => {
+  const handleMatchFinish = useCallback(async (matchId: string, pair1Score: number, pair2Score: number) => {
     if (!tournament || !selectedTournamentId) return;
 
     setLoading(true);
+
+    // Pause polling to prevent race conditions during save
+    pausePolling();
+
     try {
       // CRITICAL FIX: Always fetch the latest tournament data from the database
       // to avoid race conditions when finishing multiple matches quickly
@@ -90,13 +95,19 @@ export const AdminDashboard = () => {
       };
 
       await saveTournament(updated);
+
+      // Resume polling and force immediate refresh with updated data
+      await resumePolling();
     } catch (err) {
       console.error('Error finishing match:', err);
       toast.error('Erro ao finalizar jogo');
+      // Resume polling even on error
+      await resumePolling();
+      throw err; // Re-throw to let MatchControl handle error display
     } finally {
       setLoading(false);
     }
-  };
+  }, [tournament, selectedTournamentId, pausePolling, resumePolling]);
 
   // No tournament state
   if (!tournament) {
@@ -131,7 +142,7 @@ export const AdminDashboard = () => {
   const roundFinished = currentRound.status === 'finished';
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-in fade-in duration-300">
       {/* Status Overview */}
       <Card>
         <CardHeader>
@@ -154,7 +165,7 @@ export const AdminDashboard = () => {
       </Card>
 
       {/* Matches Grid */}
-      <div className="grid md:grid-cols-2 gap-6">
+      <div className="grid md:grid-cols-2 gap-6 transition-opacity duration-300" style={{ opacity: loading ? 0.6 : 1 }}>
         {currentRound.matches.map((match) => (
           <MatchControl
             key={match.id}

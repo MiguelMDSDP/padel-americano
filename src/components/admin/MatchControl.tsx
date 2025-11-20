@@ -1,6 +1,6 @@
 // All code in ENGLISH, UI labels in PORTUGUESE
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, memo } from 'react';
 import type { Match, Court } from '@/lib/types';
 import { validateScore, canFinishMatch } from '@/lib/utils/validations';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -14,6 +14,7 @@ import { toast } from 'sonner';
 /**
  * MatchControl Component
  * Controls a single match with score inputs and finish button
+ * Memoized to prevent unnecessary re-renders
  */
 interface MatchControlProps {
   match: Match;
@@ -21,7 +22,7 @@ interface MatchControlProps {
   onFinish: (matchId: string, pair1Score: number, pair2Score: number) => void;
 }
 
-export function MatchControl({ match, courts, onFinish }: MatchControlProps) {
+export const MatchControl = memo(function MatchControl({ match, courts, onFinish }: MatchControlProps) {
   // Score state
   const [pair1Score, setPair1Score] = useState(match.pair1Score);
   const [pair2Score, setPair2Score] = useState(match.pair2Score);
@@ -45,7 +46,7 @@ export function MatchControl({ match, courts, onFinish }: MatchControlProps) {
   /**
    * Handle finish match
    */
-  const handleFinishMatch = () => {
+  const handleFinishMatch = async () => {
     // Prevent double-finishing
     if (isFinishing || match.status === 'finished') {
       return;
@@ -79,20 +80,38 @@ export function MatchControl({ match, courts, onFinish }: MatchControlProps) {
       return;
     }
 
-    // Set finishing state to prevent double-click
+    // Set finishing state to prevent double-click and show loading
     setIsFinishing(true);
-
-    // CRITICAL FIX: Pass current scores to ensure they are saved correctly
-    // This prevents the race condition with auto-save timeout
-    onFinish(match.id, pair1Score, pair2Score);
-    toast.success('Jogo finalizado! Rankings atualizados.');
     setShowConfirmFinish(false);
+
+    // Show optimistic loading toast
+    const loadingToast = toast.loading('Finalizando jogo e atualizando rankings...');
+
+    try {
+      // CRITICAL FIX: Pass current scores to ensure they are saved correctly
+      // This prevents the race condition with auto-save timeout
+      await onFinish(match.id, pair1Score, pair2Score);
+      toast.success('Jogo finalizado! Rankings atualizados.', { id: loadingToast });
+    } catch (error) {
+      toast.error('Erro ao finalizar jogo. Tente novamente.', { id: loadingToast });
+      setIsFinishing(false);
+    }
   };
 
   const isFinished = match.status === 'finished';
 
   return (
-    <Card className="border-2">
+    <Card className="border-2 relative">
+      {/* Loading Overlay */}
+      {isFinishing && (
+        <div className="absolute inset-0 bg-background/80 backdrop-blur-sm z-10 rounded-lg flex items-center justify-center">
+          <div className="flex flex-col items-center gap-3">
+            <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+            <p className="text-sm font-medium text-foreground">Finalizando...</p>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <CardHeader>
         <div className="flex items-center justify-between">
@@ -259,4 +278,4 @@ export function MatchControl({ match, courts, onFinish }: MatchControlProps) {
       </CardContent>
     </Card>
   );
-}
+});
